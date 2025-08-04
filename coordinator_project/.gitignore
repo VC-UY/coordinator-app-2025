@@ -1,0 +1,9 @@
+vir
+venv
+__pycache__
+.coordinator
+exp-env
+
+*.log
+*.LOG
+*.sqlite3
