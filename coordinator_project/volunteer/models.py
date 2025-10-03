@@ -12,6 +12,7 @@ VOLUNTEER_STATUS_CHOICES = [
 
 class Volunteer(Document):
     id = UUIDField(primary_key=True, default=uuid.uuid4)
+    # human_readable_id = IntField(unique=True, required=True)
     name = StringField(max_length=255, required=True)
     username = StringField(max_length=255, required=True, unique=True)
     password = StringField(max_length=255, required=True)  # Dans un système réel, il faudrait hasher ce mot de passe

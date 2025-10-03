@@ -12,9 +12,9 @@ from django.utils import timezone
 from redis_communication.client import RedisClient
 from redis_communication.message import Message
 from redis_communication.utils import get_coordinator_token, get_available_volunteers
-from task.models import Task
-from volunteer.models import Volunteer
-from manager.models import Manager
+# from tasks.models import Task
+# from volunteer.models import Volunteer
+# from manager.models import Manager
 
 logger = logging.getLogger(__name__)
 

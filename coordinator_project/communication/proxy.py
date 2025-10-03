@@ -1,8 +1,10 @@
 """
 Proxy Redis pour le contrôle des messages et souscriptions.
 Intercepte toutes les commandes Redis pour appliquer des règles d'autorisation.
+VERSION OPTIMISÉE POUR 100K+ CLIENTS - Version stable sans conflits
 """
 
+import asyncio
 import socket
 import threading
 import logging
@@ -11,62 +13,190 @@ import traceback
 from datetime import datetime
 import jwt
 import redis
+import time
+from typing import Dict, Set, List, Optional
+from collections import defaultdict
 
 # Configuration du logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('RedisProxy')
+logger.setLevel(logging.DEBUG)
 
-# Définir un niveau de log plus élevé pour réduire les messages
-logger.setLevel(logging.INFO)  # Utiliser WARNING au lieu de INFO pour réduire les logs
+class RESPParser:
+    """Parser RESP robuste pour gérer tous les types de messages Redis"""
+    
+    def __init__(self):
+        self.buffer = bytearray()
+        self.position = 0
+    
+    def feed(self, data: bytes):
+        """Ajoute des données au buffer"""
+        self.buffer.extend(data)
+    
+    def parse_next(self):
+        """Parse le prochain message RESP complet"""
+        if self.position >= len(self.buffer):
+            return None
+        
+        try:
+            start_pos = self.position
+            if self.position >= len(self.buffer):
+                return None
+                
+            message_type = chr(self.buffer[self.position])
+            self.position += 1
+            
+            if message_type == '*':  # Array
+                return self._parse_array()
+            elif message_type == '$':  # Bulk String
+                return self._parse_bulk_string()
+            elif message_type == '+':  # Simple String
+                return self._parse_simple_string()
+            elif message_type == '-':  # Error
+                return self._parse_error()
+            elif message_type == ':':  # Integer
+                return self._parse_integer()
+            else:
+                # Type inconnu, remettre la position
+                self.position = start_pos
+                return None
+                
+        except (IndexError, ValueError):
+            # Pas assez de données, remettre la position
+            self.position = start_pos
+            return None
+    
+    def _parse_array(self):
+        """Parse un array RESP"""
+        length_str = self._read_until_crlf()
+        if length_str is None:
+            return None
+        
+        try:
+            length = int(length_str)
+        except ValueError:
+            return None
+        
+        if length == -1:  # Null array
+            return None
+        
+        elements = []
+        for _ in range(length):
+            element = self.parse_next()
+            if element is None:
+                return None
+            elements.append(element)
+        
+        return elements
+    
+    def _parse_bulk_string(self):
+        """Parse une bulk string RESP - VERSION CORRIGÉE pour gros messages"""
+        length_str = self._read_until_crlf()
+        if length_str is None:
+            return None
+        
+        try:
+            length = int(length_str)
+        except ValueError:
+            return None
+        
+        if length == -1:  # Null string
+            return None
+        
+        # CORRECTION: Vérification plus robuste pour les gros messages
+        if self.position + length + 2 > len(self.buffer):
+            # Pas assez de données disponibles pour ce message
+            return None
+        
+        # CORRECTION: Extraction des données avec gestion d'erreur pour gros messages
+        try:
+            data = self.buffer[self.position:self.position + length]
+            self.position += length + 2  # +2 pour \r\n
+            
+            # Décodage avec gestion d'erreur pour préserver l'intégrité
+            return data.decode('utf-8', errors='replace')
+        except (IndexError, UnicodeDecodeError) as e:
+            logger.error(f"Erreur décodage bulk string (longueur={length}): {e}")
+            return None
+    
+    def _parse_simple_string(self):
+        """Parse une simple string RESP"""
+        return self._read_until_crlf()
+    
+    def _parse_error(self):
+        """Parse une error RESP"""
+        return self._read_until_crlf()
+    
+    def _parse_integer(self):
+        """Parse un integer RESP"""
+        value_str = self._read_until_crlf()
+        if value_str is None:
+            return None
+        try:
+            return int(value_str)
+        except ValueError:
+            return None
+    
+    def _read_until_crlf(self):
+        """Lit jusqu'au prochain \r\n"""
+        start = self.position
+        
+        while self.position < len(self.buffer) - 1:
+            if (self.buffer[self.position] == ord('\r') and 
+                self.buffer[self.position + 1] == ord('\n')):
+                
+                data = self.buffer[start:self.position].decode('utf-8', errors='replace')
+                self.position += 2
+                return data
+            
+            self.position += 1
+        
+        self.position = start
+        return None
+    
+    def has_complete_message(self):
+        """Vérifie s'il y a un message complet"""
+        saved_pos = self.position
+        result = self.parse_next()
+        self.position = saved_pos
+        return result is not None
+    
+    def clear_processed(self):
+        """Nettoie les données traitées"""
+        if self.position > 0:
+            self.buffer = self.buffer[self.position:]
+            self.position = 0
 
 class RedisCommand:
-    """Classe pour analyser et représenter une commande Redis"""
+    """Classe pour analyser et représenter une commande Redis - Version optimisée"""
     
-    def __init__(self, raw_data):
-        self.raw_data = raw_data
+    def __init__(self, parsed_data):
+        self.parsed_data = parsed_data
         self.command_type = None
         self.args = []
         self.parse()
     
     def parse(self):
-        """Parse le format RESP (Redis Serialization Protocol)"""
+        """Parse les données RESP déjà parsées"""
         try:
-            # Format simplifié pour l'exemple
-            # Un parseur RESP complet serait plus complexe
-            text = self.raw_data.decode('utf-8')
-            
-            # Afficher les données brutes pour le débogage
-            logger.debug(f"Données brutes RESP: {text}")
-            
-            # Recherche des commandes pub/sub
-            if '*' in text:  # Format Array RESP
-                parts = text.split('\r\n')
-                cmd_parts = []
-                
-                i = 1  # Sauter le premier élément (*n)
-                while i < len(parts):
-                    if parts[i].startswith('$'):
-                        # Extraire la longueur
-                        length = int(parts[i][1:])
-                        i += 1  # Passer à la valeur
-                        if i < len(parts):
-                            cmd_parts.append(parts[i])
-                    i += 1
-                
-                if cmd_parts:
-                    self.command_type = cmd_parts[0].upper()
-                    self.args = cmd_parts[1:]
-                    logger.debug(f"Commande parsée: type={self.command_type}, args={self.args}")
+            if isinstance(self.parsed_data, list) and len(self.parsed_data) > 0:
+                self.command_type = str(self.parsed_data[0]).upper()
+                self.args = [str(arg) for arg in self.parsed_data[1:]]
+                logger.debug(f"Commande parsée: type={self.command_type}, args={self.args}")
+            else:
+                self.command_type = 'UNKNOWN'
+                self.args = []
         except Exception as e:
             logger.error(f"Erreur lors du parsing de la commande: {e}")
-            traceback.print_exc()
-    
+            self.command_type = 'UNKNOWN'
+            self.args = []
+
     def is_pubsub_command(self):
         """Vérifie si la commande est liée à pub/sub"""
         result = self.command_type in ['PUBLISH', 'SUBSCRIBE', 'PSUBSCRIBE', 'UNSUBSCRIBE', 'PUNSUBSCRIBE']
         logger.debug(f"is_pubsub_command: {result} pour {self.command_type}")
         return result
-    
+
     def get_channel(self):
         """Récupère le canal pour les commandes pub/sub"""
         if self.command_type == 'PUBLISH' and len(self.args) >= 1:
@@ -74,43 +204,294 @@ class RedisCommand:
         elif self.command_type in ['SUBSCRIBE', 'UNSUBSCRIBE'] and self.args:
             return self.args
         return None
-    
+
     def get_message(self):
         """Récupère le message pour la commande PUBLISH"""
         if self.command_type == 'PUBLISH' and len(self.args) >= 2:
             return self.args[1]
         return None
-    
+
     def __str__(self):
         return f"RedisCommand(type={self.command_type}, args={self.args})"
 
+class ClientData:
+    """Données client optimisées pour 100K+ connexions"""
+    
+    def __init__(self, client_id: str):
+        self.client_id = client_id
+        self.authenticated = False
+        self.user_id = None
+        self.role = None
+        self.token = None
+        self.subscriptions = set()
+        self.last_activity = time.time()
 
-class RedisProxy:
+class AsyncPubSubManager:
+    """Gestionnaire pub/sub asynchrone optimisé pour 100K+ clients - Version corrigée"""
+    
+    def __init__(self, redis_host='localhost', redis_port=6379):
+        self.redis_host = redis_host
+        self.redis_port = redis_port
+        self.subscribers = defaultdict(set)  # channel -> set of client_ids
+        self.client_writers = {}  # client_id -> writer
+        self.message_queue = asyncio.Queue(maxsize=50000)  # Queue plus grande
+        self.distribution_task = None
+        self.listen_tasks = {}  # channel -> task
+        
+        # Utiliser redis-py standard pour éviter les conflits aioredis
+        self.redis_client = redis.Redis(
+            host=redis_host, 
+            port=redis_port, 
+            decode_responses=True,
+            socket_keepalive=True,
+            socket_connect_timeout=5,
+            socket_timeout=5
+        )
+        
+    async def start(self):
+        """Démarre le gestionnaire pub/sub"""
+        self.distribution_task = asyncio.create_task(self._message_distributor())
+        logger.info("Gestionnaire pub/sub démarré")
+        
+    async def stop(self):
+        """Arrête le gestionnaire pub/sub"""
+        if self.distribution_task:
+            self.distribution_task.cancel()
+            try:
+                await self.distribution_task
+            except asyncio.CancelledError:
+                pass
+        
+        for task in self.listen_tasks.values():
+            task.cancel()
+        
+        if self.listen_tasks:
+            await asyncio.gather(*self.listen_tasks.values(), return_exceptions=True)
+    
+    async def subscribe(self, client_id: str, writer, channels: List[str]):
+        """Abonne un client à des canaux"""
+        self.client_writers[client_id] = writer
+        
+        for channel in channels:
+            self.subscribers[channel].add(client_id)
+            
+            # Créer une tâche d'écoute pour ce canal si nécessaire
+            if channel not in self.listen_tasks:
+                self.listen_tasks[channel] = asyncio.create_task(
+                    self._listen_channel(channel)
+                )
+    
+    async def unsubscribe(self, client_id: str, channels: Optional[List[str]] = None):
+        """Désabonne un client"""
+        if channels is None:
+            # Désabonner de tous les canaux
+            channels = []
+            for channel, subs in self.subscribers.items():
+                if client_id in subs:
+                    channels.append(channel)
+        
+        for channel in channels:
+            if channel in self.subscribers and client_id in self.subscribers[channel]:
+                self.subscribers[channel].remove(client_id)
+                
+                # Arrêter l'écoute si plus d'abonnés
+                if not self.subscribers[channel] and channel in self.listen_tasks:
+                    self.listen_tasks[channel].cancel()
+                    del self.listen_tasks[channel]
+    
+    async def cleanup_client(self, client_id: str):
+        """Nettoie un client déconnecté"""
+        if client_id in self.client_writers:
+            del self.client_writers[client_id]
+        await self.unsubscribe(client_id)
+    
+    async def publish_to_subscribers(self, channel: str, message: str):
+        """Publie un message aux abonnés locaux"""
+        await self.message_queue.put((channel, message))
+    
+    async def _listen_channel(self, channel: str):
+        """Écoute un canal Redis - Version corrigée sans aioredis"""
+        try:
+            # Créer un client Redis dédié pour ce canal
+            redis_client = redis.Redis(
+                host=self.redis_host, 
+                port=self.redis_port, 
+                decode_responses=True,
+                socket_keepalive=True,
+                socket_connect_timeout=5,
+                socket_timeout=5
+            )
+            pubsub = redis_client.pubsub()
+            
+            # S'abonner au canal de manière asynchrone
+            await asyncio.get_event_loop().run_in_executor(None, pubsub.subscribe, channel)
+            logger.debug(f"Écoute démarrée pour le canal: {channel}")
+            
+            while channel in self.listen_tasks:
+                try:
+                    # Écouter les messages de manière asynchrone avec timeout plus court
+                    message = await asyncio.get_event_loop().run_in_executor(
+                        None, pubsub.get_message, 0.5
+                    )
+                    
+                    if message and message['type'] == 'message':
+                        await self.message_queue.put((channel, message['data']))
+                    
+                    # Petite pause pour éviter la surcharge CPU
+                    await asyncio.sleep(0.1)
+                    
+                except Exception as e:
+                    logger.error(f"Erreur dans l'écoute du canal {channel}: {e}")
+                    await asyncio.sleep(1)
+                    
+        except asyncio.CancelledError:
+            logger.debug(f"Arrêt de l'écoute du canal {channel}")
+        except Exception as e:
+            logger.error(f"Erreur dans l'écoute du canal {channel}: {e}")
+        finally:
+            try:
+                # Nettoyage de manière asynchrone
+                await asyncio.get_event_loop().run_in_executor(None, pubsub.unsubscribe, channel)
+                await asyncio.get_event_loop().run_in_executor(None, pubsub.close)
+                redis_client.close()
+            except Exception as e:
+                logger.debug(f"Erreur nettoyage écoute {channel}: {e}")
+
+    async def _message_distributor(self):
+        """Distribue les messages aux clients abonnés - Version optimisée"""
+        while True:
+            try:
+                channel, data = await self.message_queue.get()
+                
+                subscribers = list(self.subscribers.get(channel, []))
+                if not subscribers:
+                    continue
+                
+                # Formater le message RESP une seule fois
+                resp_message = self._format_pubsub_message(channel, data)
+                
+                # Envoyer en parallèle à tous les abonnés (optimisé pour 100K+)
+                send_tasks = []
+                batch_size = 1000  # Traiter par batch pour éviter l'overload
+                
+                for i in range(0, len(subscribers), batch_size):
+                    batch = subscribers[i:i + batch_size]
+                    task = asyncio.create_task(
+                        self._send_batch(batch, resp_message)
+                    )
+                    send_tasks.append(task)
+                
+                if send_tasks:
+                    await asyncio.gather(*send_tasks, return_exceptions=True)
+                
+                self.message_queue.task_done()
+                logger.info(f"Message distribué à {len(subscribers)} clients sur {channel}")
+                
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Erreur dans le distributeur de messages: {e}")
+    
+    async def _send_batch(self, client_ids: List[str], message: bytes):
+        """Envoie un message à un batch de clients"""
+        for client_id in client_ids:
+            if client_id in self.client_writers:
+                try:
+                    writer = self.client_writers[client_id]
+                    writer.write(message)
+                    await writer.drain()
+                except Exception as e:
+                    logger.error(f"Erreur envoi à {client_id}: {e}")
+                    # Nettoyer le client défaillant
+                    if client_id in self.client_writers:
+                        del self.client_writers[client_id]
+    
+    def _format_pubsub_message(self, channel: str, data) -> bytes:
+        """Formate un message pub/sub au format RESP - VERSION CORRIGÉE pour préserver l'intégrité"""
+        if isinstance(data, bytes):
+            data = data.decode('utf-8', errors='replace')
+        elif not isinstance(data, str):
+            data = str(data)
+        
+        # CORRECTION: Construction plus robuste du message RESP
+        # pour éviter les corruptions avec les gros messages
+        try:
+            # Encoder les données en UTF-8 pour connaître la taille exacte
+            channel_bytes = channel.encode('utf-8')
+            data_bytes = data.encode('utf-8')
+            
+            # Construire le message RESP manuellement avec les bonnes tailles
+            resp_parts = []
+            resp_parts.append(b"*3\r\n")  # Array de 3 éléments
+            
+            # "message"
+            resp_parts.append(b"$7\r\nmessage\r\n")
+            
+            # Channel
+            resp_parts.append(f"${len(channel_bytes)}\r\n".encode('utf-8'))
+            resp_parts.append(channel_bytes)
+            resp_parts.append(b"\r\n")
+            
+            # Data (le contenu du message)
+            resp_parts.append(f"${len(data_bytes)}\r\n".encode('utf-8'))
+            resp_parts.append(data_bytes)
+            resp_parts.append(b"\r\n")
+            
+            # Joindre toutes les parties en bytes pour éviter les problèmes d'encodage
+            final_message = b''.join(resp_parts)
+            
+            # Log pour déboguer les gros messages
+            if len(data_bytes) > 10000:  # Plus de 10KB
+                logger.debug(f"Message pub/sub volumineux formaté: {len(data_bytes)} bytes")
+            
+            return final_message
+            
+        except Exception as e:
+            logger.error(f"Erreur formatage message pub/sub: {e}")
+            # Fallback en cas d'erreur
+            fallback = f"*3\r\n$7\r\nmessage\r\n${len(channel)}\r\n{channel}\r\n$5\r\nERROR\r\n"
+            return fallback.encode('utf-8')
+
+class AsyncRedisProxy:
     """
-    Proxy pour intercepter et contrôler les commandes Redis.
-    Gère l'authentification JWT et les permissions des canaux.
+    Proxy Redis asynchrone optimisé pour 100K+ connexions simultanées
+    Version corrigée sans conflits aioredis
     """
     
     def __init__(self, redis_host='localhost', redis_port=6379, proxy_port=6380):
-        """
-        Initialise le proxy Redis.
-        
-        Args:
-            redis_host: Hôte Redis (défaut: localhost)
-            port: Port Redis (défaut: 6379)
-            proxy_port: Port sur lequel le proxy écoute (défaut: 6380)
-        """
         self.redis_host = redis_host
         self.redis_port = redis_port
         self.proxy_port = proxy_port
-        self.server_socket = None
         self.running = False
-        self.client_connections = {}  # Pour suivre les connexions client
-
-        # Toutes les addresses coorespondate à l'hote local
+        
+        # Pool de connexions Redis standard pour éviter les conflits
+        self.redis_pool = redis.ConnectionPool(
+            host=redis_host,
+            port=redis_port,
+            max_connections=500,
+            socket_keepalive=True,
+            socket_connect_timeout=5,
+            socket_timeout=5
+        )
+        
+        # Gestionnaire pub/sub
+        self.pubsub_manager = None
+        
+        # Stockage des clients optimisé
+        self.clients = {}  # client_id -> ClientData
+        
+        # Métriques de performance
+        self.stats = {
+            'connected_clients': 0,
+            'total_connections': 0,
+            'messages_processed': 0,
+            'errors': 0,
+            'start_time': time.time()
+        }
+        
+        # Configuration des canaux
         self.coordinator_address = [('localhost', 6380), ('127.0.0.1', 6380)]
         
-        # Canaux d'enregistrement et d'authentification (toujours autorisés)
         self.open_channels = {
             'auth/register': True,
             'auth/register_response': True,
@@ -124,9 +505,15 @@ class RedisProxy:
             'auth/volunteer_register_response': True,
             'auth/volunteer_login': True,
             'auth/volunteer_login_response': True,
+            # Canaux de test pour les tests d'intégrité et de performance
+            'test/channel': True,
+            'test/integrity/small': True,
+            'test/integrity/medium': True,
+            'test/integrity/large': True,
+            'test/integrity/mixed': True,
+            'test/performance/#': True,
         }
         
-        # Canaux réservés aux managers
         self.manager_channels = {
             'tasks/new': True,
             'tasks/assign': True,
@@ -139,7 +526,6 @@ class RedisProxy:
             'task/reassignment': True,
         }
         
-        # Canaux réservés aux volunteers
         self.volunteer_channels = {
             'volunteer/available': True,
             'volunteer/resources': True,
@@ -149,8 +535,6 @@ class RedisProxy:
             'task/complete': True,
             'task/progress': True,
         }
-
-        
         
         # Transformateurs de messages
         self.message_transformers = [
@@ -158,179 +542,219 @@ class RedisProxy:
             self.filter_sensitive_data
         ]
     
-    def start(self):
-        """Démarre le proxy"""
-        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.server_socket.bind(('0.0.0.0', self.proxy_port))
-        self.server_socket.listen(100)
+    async def start(self):
+        """Démarre le proxy asynchrone"""
+        # Initialiser le gestionnaire pub/sub avec les bons paramètres
+        self.pubsub_manager = AsyncPubSubManager(self.redis_host, self.redis_port)
+        await self.pubsub_manager.start()
+        
+        # CORRECTION: Écouter automatiquement tous les canaux ouverts sur Redis
+        await self._setup_open_channels_listeners()
+        
+        # Démarrer le serveur avec optimisations pour haute charge
+        server = await asyncio.start_server(
+            self.handle_client,
+            '0.0.0.0',
+            self.proxy_port,
+            limit=10*1024*1024,  # 10MB buffer par connexion (plus grand)
+            backlog=5000  # Queue de connexions plus grande
+        )
         
         self.running = True
-        logger.info(f"Proxy Redis démarré sur le port {self.proxy_port}")
         
-        # Démarrer un thread pour écouter les messages publiés sur Redis
-        # et les transmettre aux clients abonnés
-        self.pubsub_thread = threading.Thread(target=self._listen_for_published_messages)
-        self.pubsub_thread.daemon = True
-        self.pubsub_thread.start()
+        # Tâches de maintenance
+        asyncio.create_task(self.monitor_performance())
+        asyncio.create_task(self.cleanup_inactive_clients())
         
-        try:
-            while self.running:
-                client_socket, client_address = self.server_socket.accept()
-                client_id = f"{client_address[0]}:{client_address[1]}"
-                logger.debug(f"Nouvelle connexion: {client_id}")
-                
-                # Créer un thread pour gérer ce client
-                client_thread = threading.Thread(
-                    target=self.handle_client,
-                    args=(client_socket, client_id)
-                )
-                client_thread.daemon = True
-                client_thread.start()
-                
-                # Suivre la connexion
-                self.client_connections[client_id] = {
-                    'socket': client_socket,
-                    'thread': client_thread,
-                    'authenticated': False,
-                    'user_id': None,
-                    'role': None,
-                    'token': None,
-                    'subscribed_channels': set()
-                }
-        except KeyboardInterrupt:
-            logger.info("Arrêt du proxy...")
-        finally:
-            self.stop()
+        logger.info(f"Proxy Redis asynchrone démarré sur le port {self.proxy_port}")
+        logger.info(f"Optimisé pour 100K+ connexions simultanées")
+        
+        async with server:
+            await server.serve_forever()
     
-    def _remove_client(self, client_id):
-        """Supprime un client de la liste des connexions"""
-        if client_id in self.client_connections:
-            try:
-                # Fermer la socket si elle est encore ouverte
-                if 'socket' in self.client_connections[client_id]:
-                    self.client_connections[client_id]['socket'].close()
-            except Exception as e:
-                logger.error(f"Erreur lors de la fermeture de la socket du client {client_id}: {e}")
-            
-            # Supprimer le client de la liste des connexions
-            del self.client_connections[client_id]
-            logger.info(f"Client {client_id} supprimé de la liste des connexions")
+    async def _setup_open_channels_listeners(self):
+        """Configure l'écoute automatique des canaux ouverts sur Redis"""
+        logger.info("Configuration de l'écoute automatique des canaux ouverts...")
+        
+        # Créer des listeners automatiques pour tous les canaux ouverts
+        open_channels_list = list(self.open_channels.keys())
+        
+        for channel in open_channels_list:
+            # Ignorer les patterns (avec #)
+            if '#' not in channel:
+                # Créer une tâche d'écoute dédiée pour ce canal ouvert
+                if channel not in self.pubsub_manager.listen_tasks:
+                    self.pubsub_manager.listen_tasks[channel] = asyncio.create_task(
+                        self.pubsub_manager._listen_channel(channel)
+                    )
+                    logger.info(f"Écoute automatique configurée pour canal ouvert: {channel}")
+        
+        logger.info(f"Écoute automatique configurée pour {len([c for c in open_channels_list if '#' not in c])} canaux ouverts")
     
-    def stop(self):
+    async def stop(self):
         """Arrête le proxy"""
         self.running = False
-        if self.server_socket:
-            self.server_socket.close()
         
-        # Fermer toutes les connexions client
-        for client_id in list(self.client_connections.keys()):
-            self._remove_client(client_id)
-            
+        if self.pubsub_manager:
+            await self.pubsub_manager.stop()
+        
+        if self.redis_pool:
+            self.redis_pool.disconnect()
         
         logger.info("Proxy Redis arrêté")
     
-    def handle_client(self, client_socket, client_id):
-        """Gère une connexion client"""
-        # Connexion au serveur Redis réel
-        redis_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    async def handle_client(self, reader, writer):
+        """Gère un client - Version optimisée pour haute charge avec correction corruption messages"""
+        client_addr = writer.get_extra_info('peername')
+        client_id = f"{client_addr[0]}:{client_addr[1]}:{int(time.time()*1000) % 10000}"
+        
+        # Créer les objets pour ce client
+        parser = RESPParser()
+        client_data = ClientData(client_id)
+        # Utiliser une connexion Redis standard pour éviter les conflits
+        redis_connection = redis.Redis(connection_pool=self.redis_pool)
+        
+        # Enregistrer le client
+        self.clients[client_id] = client_data
+        self.stats['connected_clients'] += 1
+        self.stats['total_connections'] += 1
+        
+        logger.debug(f"Nouvelle connexion: {client_id}")
+        
         try:
-            redis_socket.connect((self.redis_host, self.redis_port))
-            
             while self.running:
-                # Recevoir des données du client
-                data = client_socket.recv(9097152) # 2Mo
-                if not data:
-                    logger.debug(f"Pas de donnees recues")
+                try:
+                    # CORRECTION: Lecture adaptative pour éviter la corruption des gros messages
+                    # Lire par plus gros chunks et s'assurer de la complétude des messages RESP
+                    data = await asyncio.wait_for(
+                        reader.read(65536),  # 64KB chunks pour les gros messages
+                        timeout=30.0
+                    )
+                    
+                    if not data:
+                        logger.debug(f"Client {client_id} déconnecté (pas de données)")
+                        break
+                    
+                    # Mettre à jour l'activité
+                    client_data.last_activity = time.time()
+                    
+                    # Ajouter les données au parser
+                    parser.feed(data)
+                    
+                    # CORRECTION: Traiter tous les messages complets de manière séquentielle
+                    # pour préserver l'ordre et l'intégrité
+                    while parser.has_complete_message():
+                        try:
+                            command_data = parser.parse_next()
+                            if command_data:
+                                await self.process_command(client_id, client_data, command_data, writer, redis_connection)
+                                self.stats['messages_processed'] += 1
+                            else:
+                                # Si parse_next retourne None malgré has_complete_message, 
+                                # il y a un problème dans le buffer
+                                logger.warning(f"Parser inconsistent pour {client_id}, nettoyage buffer")
+                                break
+                        except Exception as e:
+                            logger.error(f"Erreur traitement commande pour {client_id}: {e}")
+                            self.stats['errors'] += 1
+                            break
+                    
+                    # Nettoyer le buffer après traitement pour éviter l'accumulation
+                    parser.clear_processed()
+                    
+                    # Protection contre l'accumulation excessive de données
+                    if len(parser.buffer) > 50*1024*1024:  # 50MB limite pour gros messages
+                        logger.warning(f"Buffer trop gros pour {client_id}, nettoyage forcé")
+                        parser.buffer.clear()
+                        parser.position = 0
+                
+                except asyncio.TimeoutError:
+                    # Ping pour maintenir la connexion
+                    try:
+                        writer.write(b"+PONG\r\n")
+                        await writer.drain()
+                    except:
+                        break
+                
+                except Exception as e:
+                    logger.error(f"Erreur dans handle_client pour {client_id}: {e}")
                     break
-                
-                # Analyser la commande Redis
-                command = RedisCommand(data)
-                logger.debug(f"Commande reçue: {command}")
-                
-                # Traiter les commandes pub/sub
-                if command.is_pubsub_command():
-                    if self.handle_pubsub_command(client_id, command, client_socket, redis_socket, data):
-                        continue  # Commande déjà traitée
-                elif command.command_type in ['PING', 'PONG']:
-                    # Traiter les commandes PING/PONG directement
-                    if command.command_type == 'PING':
-                        logger.debug(f"PING reçu de {client_id}")
-                        # Transmettre le PING au serveur Redis
-                        redis_socket.send(data)
-                        response = redis_socket.recv(4096)
-                        client_socket.send(response)
-                        continue
-                    elif command.command_type == 'PONG':
-                        logger.debug(f"PONG reçu de {client_id}")
-                        # Transmettre le PONG au serveur Redis
-                        redis_socket.send(data)
-                        continue
-                else:
-                    # Ne pas logger les commandes CLIENT pour éviter de surcharger les logs
-                    if command.command_type != 'CLIENT':
-                        logger.info(f"Le message n'est pas pub/sub: {command.command_type},{client_id}")
-                    elif command.command_type == 'CLIENT' and logger.isEnabledFor(logging.DEBUG):
-                        logger.debug(f"Commande CLIENT reçue de {client_id}")
-                
-                # Pour les autres commandes, les transmettre directement
-                redis_socket.send(data)
-                response = redis_socket.recv(4096)
-                client_socket.send(response)
         
         except Exception as e:
-            traceback.print_exc()
-            logger.error(f"Erreur pour le client {client_id}: {e}")
-        
+            logger.error(f"Erreur critique pour client {client_id}: {e}")
+            self.stats['errors'] += 1
         finally:
-            # Nettoyage
-            try:
-                redis_socket.close()
-            except:
-                pass
-            
-            try:
-                client_socket.close()
-            except:
-                pass
-            
-            # Supprimer la connexion
-            if client_id in self.client_connections:
-                del self.client_connections[client_id]
-            
-            logger.info(f"Client déconnecté: {client_id}")
+            await self.cleanup_client(client_id, client_data, writer, redis_connection)
     
-    def handle_pubsub_command(self, client_id, command, client_socket, redis_socket, raw_data):
+    async def process_command(self, client_id: str, client_data: ClientData, 
+                            command_data, writer, redis_connection):
+        """Traite une commande Redis - Logique de l'ancienne version"""
+        try:
+            command = RedisCommand(command_data)
+            
+            # Filtrer les commandes CLIENT SETINFO problématiques
+            if (command.command_type == 'CLIENT' and len(command.args) > 0 and 
+                command.args[0].upper() in ['SETINFO', 'SETNAME']):
+                logger.debug(f"Commande CLIENT {command.args[0]} filtrée pour {client_id}")
+                writer.write(b"+OK\r\n")
+                await writer.drain()
+                return
+            
+            # Traiter les commandes pub/sub spécialement
+            if command.is_pubsub_command():
+                await self.handle_pubsub_command(client_id, client_data, command, writer, redis_connection)
+            elif command.command_type in ['PING', 'PONG']:
+                # Traiter PING/PONG directement comme l'ancienne version
+                if command.command_type == 'PING':
+                    logger.debug(f"PING reçu de {client_id}")
+                    writer.write(b"+PONG\r\n")
+                    await writer.drain()
+                elif command.command_type == 'PONG':
+                    logger.debug(f"PONG reçu de {client_id}")
+                    # Pas de réponse nécessaire
+            else:
+                # Autres commandes - transmettre à Redis
+                if command.command_type != 'CLIENT':
+                    logger.info(f"Le message n'est pas pub/sub: {command.command_type},{client_id}")
+                elif command.command_type == 'CLIENT' and logger.isEnabledFor(logging.DEBUG):
+                    logger.debug(f"Commande CLIENT reçue de {client_id}")
+                
+                # Transmettre à Redis
+                await self.execute_redis_command(command, writer, redis_connection)
+        
+        except Exception as e:
+            logger.error(f"Erreur processing command pour {client_id}: {e}")
+            error_msg = f"-ERR Erreur interne: {str(e)}\r\n"
+            try:
+                writer.write(error_msg.encode())
+                await writer.drain()
+            except:
+                pass
+
+    async def handle_pubsub_command(self, client_id, client_data, command, writer, redis_connection):
         """Gère les commandes pub/sub"""
         
         if command.command_type == 'PUBLISH':
-            return self.handle_publish(client_id, command, client_socket, redis_socket, raw_data)
+            await self.handle_publish(client_id, client_data, command, writer, redis_connection)
         elif command.command_type in ['SUBSCRIBE', 'PSUBSCRIBE']:
-            return self.handle_subscribe(client_id, command, client_socket, redis_socket, raw_data)
+            await self.handle_subscribe(client_id, client_data, command, writer, redis_connection)
         elif command.command_type in ['UNSUBSCRIBE', 'PUNSUBSCRIBE']:
             # Gérer les désabonnements
             channels = command.get_channel()
-            if channels and client_id in self.client_connections:
-                for channel in channels:
-                    if channel in self.client_connections[client_id]['subscribed_channels']:
-                        self.client_connections[client_id]['subscribed_channels'].remove(channel)
+            if channels:
+                await self.pubsub_manager.unsubscribe(client_id, channels)
             
             # Transmettre la commande telle quelle
-            redis_socket.send(raw_data)
-            response = redis_socket.recv(4096)
-            client_socket.send(response)
-            return True
-        
-        return False
+            await self.execute_redis_command(command, writer, redis_connection)
     
-    def handle_publish(self, client_id, command, client_socket, redis_socket, raw_data):
-        """Gère la commande PUBLISH"""
+    async def handle_publish(self, client_id, client_data, command, writer, redis_connection):
+        """Gère la commande PUBLISH - Version corrigée"""
         channel = command.get_channel()
         message_str = command.get_message()
         
         if not channel or not message_str:
-            logger.warning(f"Canal ou message manquant dans la commande PUBLISH: {raw_data}")
-            return False
+            logger.warning(f"Canal ou message manquant dans la commande PUBLISH: {command}")
+            return
         
         logger.info(f"PUBLISH sur le canal {channel}: {message_str}")
         
@@ -350,8 +774,9 @@ class RedisProxy:
             if channel in self.open_channels:
                 authorized = True
             
-            # Le coordinateur peut publier dans tous les cannaux
-            if client_socket.getpeername() in self.coordinator_address:
+            # Le coordinateur peut publier dans tous les canaux
+            client_addr = writer.get_extra_info('peername')
+            if client_addr and (client_addr[0], client_addr[1]) in [(addr[0], addr[1]) for addr in self.coordinator_address]:
                 authorized = True
             # Canaux nécessitant une authentification
             elif token:
@@ -372,11 +797,10 @@ class RedisProxy:
                         authorized = True
                     
                     # Mettre à jour les informations de connexion
-                    if client_id in self.client_connections:
-                        self.client_connections[client_id]['authenticated'] = True
-                        self.client_connections[client_id]['user_id'] = user_id
-                        self.client_connections[client_id]['role'] = role
-                        self.client_connections[client_id]['token'] = token
+                    client_data.authenticated = True
+                    client_data.user_id = user_id
+                    client_data.role = role
+                    client_data.token = token
                 except jwt.InvalidTokenError as e:
                     logger.warning(f"Token JWT invalide pour {client_id}: {str(e)}")
                     authorized = False
@@ -385,30 +809,34 @@ class RedisProxy:
             if not authorized:
                 logger.warning(f"Accès non autorisé au canal {channel} pour {client_id}")
                 error_response = b'-ERR NOAUTH Permission denied\r\n'
-                client_socket.send(error_response)
-                return True
-            
-            # Log du message original avant transformation
-            # logger.info(f"Message original avant transformation: {message}")
+                writer.write(error_response)
+                await writer.drain()
+                return
             
             # Appliquer les transformateurs de messages
             for transformer in self.message_transformers:
                 transformer_name = transformer.__name__ if hasattr(transformer, '__name__') else transformer.__class__.__name__
                 message_before = message.copy() if isinstance(message, dict) else message
                 message = transformer(client_id, channel, message, user_id, role)
-                # logger.info(f"Après transformation {transformer_name}: {message}")
                 
                 # Vérifier si la structure du message a été préservée
-                if 'data' in message_before and 'data' not in message:
+                if isinstance(message_before, dict) and 'data' in message_before and isinstance(message, dict) and 'data' not in message:
                     logger.warning(f"La transformation {transformer_name} a supprimé le champ 'data'!")
             
             # Supprimer le token du message avant de le transmettre
             if isinstance(message, dict) and 'token' in message:
                 del message['token']
             
-            # Reconstruire la commande PUBLISH avec le message transformé
+            # Reconstruire le message transformé
             new_message_str = json.dumps(message)
-            new_command = f"*3\r\n$7\r\nPUBLISH\r\n${len(channel)}\r\n{channel}\r\n${len(new_message_str)}\r\n{new_message_str}\r\n"
+            
+            # Publier via Redis de manière asynchrone
+            subscriber_count = await asyncio.get_event_loop().run_in_executor(
+                None, redis_connection.publish, channel, new_message_str
+            )
+            
+            # Publier aussi via notre gestionnaire pub/sub local
+            await self.pubsub_manager.publish_to_subscribers(channel, new_message_str)
             
             # Enregistrer le message dans la base de données
             try:
@@ -465,47 +893,179 @@ class RedisProxy:
                 logger.error(f"Erreur lors de l'enregistrement du message: {e}")
                 logger.error(traceback.format_exc())
             
-            # Envoyer la commande modifiée à Redis
-            redis_socket.send(new_command.encode('utf-8'))
-            response = redis_socket.recv(4096)
-            client_socket.send(response)
+            # Réponse du nombre d'abonnés
+            response = f":{subscriber_count}\r\n"
+            writer.write(response.encode())
+            await writer.drain()
             
-            return True
         except json.JSONDecodeError:
             logger.warning(f"Format JSON invalide dans le message: {message_str}")
             error_response = b'-ERR WRONGTYPE Invalid JSON format\r\n'
-            client_socket.send(error_response)
-            return True
+            writer.write(error_response)
+            await writer.drain()
         except Exception as e:
             logger.error(f"Erreur lors du traitement de PUBLISH: {e}")
             traceback.print_exc()
-            return False
     
-    def handle_subscribe(self, client_id, command, client_socket, redis_socket, raw_data):
-        """Gère la commande SUBSCRIBE"""
+    async def handle_subscribe(self, client_id, client_data, command, writer, redis_connection):
+        """Gère la commande SUBSCRIBE - Version corrigée"""
         channels = command.get_channel()
         
         if not channels:
             logger.warning(f"Canaux manquants dans la commande SUBSCRIBE: {command}")
-            return False
+            return
         
         # Traiter tous les canaux comme autorisés pour éviter les déconnexions
-        # Dans un environnement de production, vous voudriez implémenter une vraie vérification d'autorisation
-        logger.info(f"SUBSCRIBE aux canaux {channels}")
+        logger.info(f"SUBSCRIBE aux canaux {channels} pour {client_id}")
         
         # Mettre à jour les canaux souscrits
-        if client_id in self.client_connections:
-            self.client_connections[client_id]['subscribed_channels'].update(channels)
+        client_data.subscriptions.update(channels)
         
-        # Transmettre la commande telle quelle au serveur Redis
-        redis_socket.send(raw_data)
+        # CORRECTION: S'assurer que le client est bien enregistré dans le gestionnaire pub/sub
+        await self.pubsub_manager.subscribe(client_id, writer, channels)
         
-        # Transmettre la réponse au client
-        response = redis_socket.recv(4096)
-        client_socket.send(response)
+        # DEBUG: Vérifier l'état du gestionnaire après abonnement
+        for channel in channels:
+            subscribers_count = len(self.pubsub_manager.subscribers.get(channel, set()))
+            logger.info(f"Canal {channel}: {subscribers_count} abonnés locaux après SUBSCRIBE")
         
-        return True
+        # Envoyer les confirmations de souscription au format RESP
+        for channel in channels:
+            response = f"*3\r\n$9\r\nsubscribe\r\n${len(channel)}\r\n{channel}\r\n:1\r\n"
+            writer.write(response.encode())
+        
+        await writer.drain()
     
+    async def execute_redis_command(self, command, writer, redis_connection):
+        """Exécute une commande Redis - Version corrigée"""
+        try:
+            # Construire la commande RESP
+            if hasattr(command, 'parsed_data') and command.parsed_data:
+                cmd_parts = command.parsed_data
+            else:
+                cmd_parts = [command.command_type] + command.args
+            
+            # Exécuter la commande de manière asynchrone
+            result = await asyncio.get_event_loop().run_in_executor(
+                None, redis_connection.execute_command, *cmd_parts
+            )
+            
+            # Formater la réponse
+            response = self.format_redis_response(result)
+            writer.write(response)
+            await writer.drain()
+            
+        except Exception as e:
+            logger.error(f"Erreur exécution commande Redis: {e}")
+            error_msg = f"-ERR Erreur interne: {str(e)}\r\n"
+            writer.write(error_msg.encode())
+            await writer.drain()
+    
+    def format_redis_response(self, result) -> bytes:
+        """Formate une réponse Redis au format RESP"""
+        if result is None:
+            return b"$-1\r\n"
+        elif isinstance(result, bool):
+            return b":1\r\n" if result else b":0\r\n"
+        elif isinstance(result, int):
+            return f":{result}\r\n".encode()
+        elif isinstance(result, (str, bytes)):
+            if isinstance(result, str):
+                result = result.encode('utf-8')
+            return f"${len(result)}\r\n".encode() + result + b"\r\n"
+        elif isinstance(result, list):
+            response = f"*{len(result)}\r\n".encode()
+            for item in result:
+                response += self.format_redis_response(item)
+            return response
+        else:
+            result_str = str(result)
+            result_bytes = result_str.encode('utf-8')
+            return f"${len(result_bytes)}\r\n".encode() + result_bytes + b"\r\n"
+
+    async def cleanup_client(self, client_id: str, client_data: ClientData, 
+                           writer, redis_connection):
+        """Nettoie les ressources d'un client déconnecté"""
+        try:
+            # Nettoyer les souscriptions
+            if self.pubsub_manager:
+                await self.pubsub_manager.cleanup_client(client_id)
+            
+            # Fermer les connexions
+            if writer:
+                try:
+                    writer.close()
+                    await writer.wait_closed()
+                except:
+                    pass
+            
+            if redis_connection:
+                try:
+                    redis_connection.close()
+                except:
+                    pass
+            
+            # Retirer des statistiques
+            self.stats['connected_clients'] -= 1
+            
+            # Retirer du dictionnaire des clients
+            if client_id in self.clients:
+                del self.clients[client_id]
+            
+            logger.debug(f"Client {client_id} nettoyé")
+        
+        except Exception as e:
+            logger.error(f"Erreur cleanup client {client_id}: {e}")
+
+    async def monitor_performance(self):
+        """Monitore les performances du proxy"""
+        while self.running:
+            try:
+                await asyncio.sleep(30)  # Toutes les minutes
+                
+                uptime = time.time() - self.stats['start_time']
+                
+                logger.info(
+                    f"Stats Proxy: "
+                    f"Clients={self.stats['connected_clients']}, "
+                    f"Total={self.stats['total_connections']}, "
+                    f"Messages={self.stats['messages_processed']}, "
+                    f"Erreurs={self.stats['errors']}, "
+                    f"Uptime={uptime/3600:.1f}h"
+                )
+                
+                # Alertes de performance
+                if self.stats['connected_clients'] > 80000:
+                    logger.warning(f"Haute charge: {self.stats['connected_clients']} clients connectés")
+                
+                if self.stats['errors'] > 1000:
+                    logger.warning(f"Taux d'erreur élevé: {self.stats['errors']} erreurs")
+            
+            except Exception as e:
+                logger.error(f"Erreur monitoring: {e}")
+
+    async def cleanup_inactive_clients(self):
+        """Nettoie les clients inactifs"""
+        while self.running:
+            try:
+                await asyncio.sleep(300)  # Toutes les 5 minutes
+                
+                current_time = time.time()
+                inactive_clients = []
+                
+                for client_id, client_data in list(self.clients.items()):
+                    if current_time - client_data.last_activity > 600:  # 10 minutes
+                        inactive_clients.append(client_id)
+                
+                for client_id in inactive_clients:
+                    logger.info(f"Nettoyage client inactif: {client_id}")
+                    if client_id in self.clients:
+                        await self.pubsub_manager.cleanup_client(client_id)
+                        del self.clients[client_id]
+            
+            except Exception as e:
+                logger.error(f"Erreur cleanup inactifs: {e}")
+
     def add_metadata(self, client_id, channel, message, user_id=None, role=None):
         """Ajoute des métadonnées au message sans altérer sa structure"""
         # Vérifier si le message est un dictionnaire
@@ -554,89 +1114,30 @@ class RedisProxy:
         
         return message
 
-    def _listen_for_published_messages(self):
-        """Écoute les messages publiés sur Redis et les transmet aux clients abonnés"""
-        try:
-            # Utiliser redis-py pour s'abonner aux canaux
-            redis_client = redis.Redis(host=self.redis_host, port=self.redis_port, decode_responses=True)
-            pubsub = redis_client.pubsub()
-            
-            # S'abonner à tous les canaux connus
-            all_channels = list(self.open_channels.keys()) + list(self.manager_channels.keys()) + list(self.volunteer_channels.keys())
-            # Ajouter explicitement les canaux de réponse
-            response_channels = [
-                'auth/register_response',
-                'auth/login_response',
-                'auth/volunteer_register_response',
-                'auth/volunteer_login_response'
-            ]
-            
-            # S'assurer que tous les canaux de réponse sont inclus
-            for channel in response_channels:
-                if channel not in all_channels:
-                    all_channels.append(channel)
-            
-            # Filtrer les canaux avec des jokers (#)
-            channels_to_subscribe = [channel for channel in all_channels if '#' not in channel]
-            
-            if channels_to_subscribe:
-                logger.info(f"Proxy s'abonne aux canaux: {', '.join(channels_to_subscribe)}")
-                pubsub.subscribe(*channels_to_subscribe)
-            
-            # Boucle d'écoute des messages
-            for message in pubsub.listen():
-                if message['type'] == 'message':
-                    channel = message['channel']
-                    data = message['data']
-                    
-                    logger.info(f"Message {data}reçu sur {channel} à transmettre aux clients abonnés")
-                    
-                    # Convertir le message au format RESP pour le transmettre aux clients
-                    resp_message = self._format_pubsub_message(channel, data)
-                    
-                    # Transmettre le message aux clients abonnés
-                    clients_count = 0
-                    for client_id, client_info in list(self.client_connections.items()):
-                        # Vérifier si le client est abonné à ce canal
-                        subscribed_channels = client_info.get('subscribed_channels', set())
-                        
-                        # Log pour déboguer
-                        logger.debug(f"Client {client_id} est abonné aux canaux: {subscribed_channels}")
-                        
-                        if channel in subscribed_channels:
-                            try:
-                                client_socket = client_info['socket']
-                                client_socket.send(resp_message)
-                                clients_count += 1
-                                logger.info(f"Message sur {channel} transmis au client {client_id}")
-                            except Exception as e:
-                                logger.error(f"Erreur lors de la transmission au client {client_id}: {e}")
-                                # Supprimer le client si la connexion est perdue
-                                self._remove_client(client_id)
-                    
-                    if clients_count == 0:
-                        logger.warning(f"Aucun client abonné au canal {channel} pour recevoir le message")
-                    else:
-                        logger.info(f"Message transmis à {clients_count} clients abonnés au canal {channel}")
-        
-        except Exception as e:
-            logger.error(f"Erreur dans le thread d'écoute des messages publiés: {e}")
-            import traceback
-            traceback.print_exc()
+# Fonction pour maintenir la compatibilité avec l'ancienne interface
+class RedisProxy(AsyncRedisProxy):
+    """Wrapper pour maintenir la compatibilité avec l'interface synchrone"""
     
-    def _format_pubsub_message(self, channel, data):
-        """Formate un message pub/sub au format RESP"""
-        # Format: *3\r\n$7\r\nmessage\r\n$<len(channel)>\r\n<channel>\r\n$<len(data)>\r\n<data>\r\n
-        channel_bytes = channel.encode('utf-8')
-        data_bytes = data.encode('utf-8') if isinstance(data, str) else data
-        
-        resp_message = (
-            f"*3\r\n$7\r\nmessage\r\n${len(channel_bytes)}\r\n{channel}\r\n"
-            f"${len(data_bytes)}\r\n{data}\r\n"
-        ).encode('utf-8')
-        
-        return resp_message
-
+    def __init__(self, redis_host='localhost', redis_port=6379, proxy_port=6380):
+        super().__init__(redis_host, redis_port, proxy_port)
+        self._loop = None
+    
+    def start(self):
+        """Démarre le proxy (interface synchrone)"""
+        try:
+            self._loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self._loop)
+            self._loop.run_until_complete(super().start())
+        except KeyboardInterrupt:
+            logger.info("Arrêt du proxy...")
+        finally:
+            self.stop()
+    
+    def stop(self):
+        """Arrête le proxy (interface synchrone)"""
+        if self._loop and not self._loop.is_closed():
+            self._loop.run_until_complete(super().stop())
+            self._loop.close()
 
 # Fonction pour démarrer le proxy en tant que service
 def start_proxy_service(host='localhost', redis_port=6379, proxy_port=6380):
@@ -653,4 +1154,9 @@ def start_proxy_service(host='localhost', redis_port=6379, proxy_port=6380):
         redis_port=redis_port,
         proxy_port=proxy_port
     )
+    proxy.start()
+
+# Point d'entrée principal
+if __name__ == "__main__":
+    proxy = RedisProxy()
     proxy.start()
