@@ -18,9 +18,9 @@ from typing import Dict, Set, List, Optional
 from collections import defaultdict
 
 # Configuration du logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('RedisProxy')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 class RESPParser:
     """Parser RESP robuste pour gérer tous les types de messages Redis"""
@@ -538,8 +538,8 @@ class AsyncRedisProxy:
         
         # Transformateurs de messages
         self.message_transformers = [
-            self.add_metadata,
-            self.filter_sensitive_data
+            # self.add_metadata,
+            # self.filter_sensitive_data
         ]
     
     async def start(self):
@@ -663,7 +663,7 @@ class AsyncRedisProxy:
                     parser.clear_processed()
                     
                     # Protection contre l'accumulation excessive de données
-                    if len(parser.buffer) > 50*1024*1024:  # 50MB limite pour gros messages
+                    if len(parser.buffer) > 100*1024*1024:  # 100MB limite pour gros messages
                         logger.warning(f"Buffer trop gros pour {client_id}, nettoyage forcé")
                         parser.buffer.clear()
                         parser.position = 0
@@ -756,7 +756,7 @@ class AsyncRedisProxy:
             logger.warning(f"Canal ou message manquant dans la commande PUBLISH: {command}")
             return
         
-        logger.info(f"PUBLISH sur le canal {channel}: {message_str}")
+        logger.debug(f"PUBLISH sur le canal {channel}: {message_str}")
         
         try:
             # Tenter de parser le message JSON
@@ -836,7 +836,7 @@ class AsyncRedisProxy:
             )
             
             # Publier aussi via notre gestionnaire pub/sub local
-            await self.pubsub_manager.publish_to_subscribers(channel, new_message_str)
+            # await self.pubsub_manager.publish_to_subscribers(channel, new_message_str)
             
             # Enregistrer le message dans la base de données
             try:

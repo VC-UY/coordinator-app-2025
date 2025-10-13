@@ -114,7 +114,9 @@ def handle_task_progress(channel: str, message: Message):
                 return
                 
     except Exception as e:
+        import traceback
         logger.error(f"Erreur lors du traitement du progrès: {str(e)}")
+        logger.error(traceback.format_exc())
 
 def handle_task_completed(channel: str, message: Message):
     """
