@@ -1,0 +1,93 @@
+[
+  {
+    "id": "1418",
+    "assigned_at": "2025-07-01 13:18:57.435674",
+    "progress": "26.44",
+    "started_at": "NULL",
+    "completed_at": "NULL",
+    "status": "Running",
+    "result": "NULL",
+    "error": "NULL",
+    "task_id": "d8bbda80c8f345ebb927dab1df57d1a7",
+    "volunteer_id": "6673e2665ca641039c179f8bc1a5ef9c",
+    "accepted_at": "2025-07-01 13:19:01.615038"
+  },
+  {
+    "id": "1419",
+    "assigned_at": "2025-07-01 13:18:57.740805",
+    "progress": "100.0",
+    "started_at": "NULL",
+    "completed_at": "2025-07-01 13:20:03.774113",
+    "status": "completed",
+    "result": "{\"host\": \"192.168.2.103\", \"port\": 36023, \"path\": \"/files/\", \"output_files\": [\"output.txt\"]}",
+    "error": "NULL",
+    "task_id": "c713e3961b7b49cb883cc06d9393730c",
+    "volunteer_id": "0b9ba7a5dc0348a789bd8c0cf8d29554",
+    "accepted_at": "2025-07-01 13:19:07.030716"
+  },
+  {
+    "id": "1420",
+    "assigned_at": "2025-07-01 13:18:58.087151",
+    "progress": "34.93",
+    "started_at": "NULL",
+    "completed_at": "NULL",
+    "status": "completed",
+    "result": "NULL",
+    "error": "NULL",
+    "task_id": "f2357e50796443bb986453bc0a7c1adf",
+    "volunteer_id": "998273f01c604fa6ad1aa707acff1029",
+    "accepted_at": "2025-07-01 13:19:05.450533"
+  },
+  {
+    "id": "1421",
+    "assigned_at": "2025-07-01 13:18:58.429440",
+    "progress": "38.3428488969803",
+    "started_at": "NULL",
+    "completed_at": "NULL",
+    "status": "Running",
+    "result": "NULL",
+    "error": "NULL",
+    "task_id": "c29e0671fc1048448ef9424d40f5f390",
+    "volunteer_id": "299900b0603d4d32be6cf5f634ff56e1",
+    "accepted_at": "2025-07-01 13:19:12.446281"
+  },
+  {
+    "id": "1422",
+    "assigned_at": "2025-07-01 13:18:58.667880",
+    "progress": "37.26",
+    "started_at": "NULL",
+    "completed_at": "NULL",
+    "status": "Running",
+    "result": "NULL",
+    "error": "NULL",
+    "task_id": "dd37979982164896960b0cc90815a14d",
+    "volunteer_id": "e37fd10e109b45a48422d96e3bda98e5",
+    "accepted_at": "2025-07-01 13:19:08.619076"
+  },
+  {
+    "id": "1423",
+    "assigned_at": "2025-07-01 13:18:58.950987",
+    "progress": "0.0",
+    "started_at": "NULL",
+    "completed_at": "NULL",
+    "status": "ASSIGNED",
+    "result": "NULL",
+    "error": "NULL",
+    "task_id": "6868321592d34687beb5dd6055c60afb",
+    "volunteer_id": "583247cdfa464cc1aa4a3793bb27acdb",
+    "accepted_at": "NULL"
+  },
+  {
+    "id": "1424",
+    "assigned_at": "2025-07-01 13:18:59.245098",
+    "progress": "36.52",
+    "started_at": "NULL",
+    "completed_at": "NULL",
+    "status": "Running",
+    "result": "NULL",
+    "error": "NULL",
+    "task_id": "b34756765204489fbef947390b4eb31e",
+    "volunteer_id": "983849a64ca5420dbdf404434418cdb0",
+    "accepted_at": "2025-07-01 13:19:14.025346"
+  }
+]

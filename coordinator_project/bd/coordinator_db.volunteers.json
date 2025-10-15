@@ -1,0 +1,1934 @@
+[{
+  "_id": {
+    "$binary": {
+      "base64": "rm3e7CkYS5SCCtfMnAjuYg==",
+      "subType": "03"
+    }
+  },
+  "name": "dk-virtual-machine",
+  "username": "volunteer_eab9d6b1",
+  "password": "e882e631583f45ca9e9245030d7ed702",
+  "cpu_model": "x86_64",
+  "cpu_cores": 2,
+  "total_ram": 3,
+  "available_storage": 19,
+  "operating_system": "Linux #63~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Apr 22 19:00:15 UTC 2",
+  "last_update": {
+    "$date": "2025-06-23T13:36:26.773Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "192.168.13.129",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-23T14:17:08.940Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#63~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Apr 22 19:00:15 UTC 2",
+      "architecture": "x86_64",
+      "hostname": "dk-virtual-machine"
+    },
+    "cpu": {
+      "type": "x86_64",
+      "coeurs_physiques": 2,
+      "coeurs_logiques": 2,
+      "frequence": {
+        "min": 0,
+        "max": 0
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "3.78 GB"
+      },
+      "cache": {
+        "total": "1.20 GB"
+      },
+      "swap": {
+        "total": "2.09 GB"
+      }
+    },
+    "disque": {
+      "total": "19.02 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "Phoenix Technologies LTD",
+        "Version": "6.00",
+        "Date de sortie": "11/12/2020"
+      },
+      "Carte mère": {
+        "Fabricant": "Intel Corporation",
+        "Modèle": "440BX Desktop Reference Platform"
+      }
+    },
+    "resolution_ecran": "primary",
+    "adresse_mac": "cb:7a:fb:45:5b:b3",
+    "interfaces_reseau": 3,
+    "peripheriques_usb": 5
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "wlZ0PsdORhu+KG7yilionA==",
+      "subType": "03"
+    }
+  },
+  "name": "megane-Latitude-5410",
+  "username": "volunteer_1d37249b",
+  "password": "37994586f24b48d9b7c6e833dc818948",
+  "cpu_model": "x86_64",
+  "cpu_cores": 8,
+  "total_ram": 15,
+  "available_storage": 78,
+  "operating_system": "Linux #26~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Thu Jul 13 16:27:29 UTC 2",
+  "last_update": {
+    "$date": "2025-06-23T13:41:19.489Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "10.210.82.115",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-23T14:17:15.717Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#26~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Thu Jul 13 16:27:29 UTC 2",
+      "architecture": "x86_64",
+      "hostname": "megane-Latitude-5410"
+    },
+    "cpu": {
+      "type": "x86_64",
+      "coeurs_physiques": 4,
+      "coeurs_logiques": 8,
+      "frequence": {
+        "min": 400,
+        "max": 4400
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "15.22 GB"
+      },
+      "cache": {
+        "total": "5.78 GB"
+      },
+      "swap": {
+        "total": "2.00 GB"
+      }
+    },
+    "disque": {
+      "total": "78.19 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "Dell Inc.",
+        "Version": "1.19.1",
+        "Date de sortie": "02/22/2023"
+      },
+      "Carte mère": {
+        "Fabricant": "Dell Inc.",
+        "Modèle": "06KF2W"
+      }
+    },
+    "resolution_ecran": "primary",
+    "adresse_mac": "2b:40:49:d7:26:5f",
+    "interfaces_reseau": 4,
+    "peripheriques_usb": 5
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "GclAOd8WTlC07o5pmMrVXQ==",
+      "subType": "03"
+    }
+  },
+  "name": "Jovi",
+  "username": "volunteer_b4966a80",
+  "password": "4f65e0fc566b47c7892f07fd60824bd7",
+  "cpu_model": "",
+  "cpu_cores": 8,
+  "total_ram": 1024,
+  "available_storage": 10,
+  "operating_system": "Linux #1 SMP PREEMPT_DYNAMIC Kali 6.12.25-1kali1 (2025-04-30)",
+  "last_update": {
+    "$date": "2025-06-23T13:41:23.865Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "127.0.1.1",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-23T14:17:07.118Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#1 SMP PREEMPT_DYNAMIC Kali 6.12.25-1kali1 (2025-04-30)",
+      "architecture": "x86_64",
+      "hostname": "Jovi"
+    },
+    "cpu": {
+      "type": "",
+      "coeurs_physiques": 4,
+      "coeurs_logiques": 8,
+      "frequence": {
+        "min": 400,
+        "max": 4800
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "15.36 GB"
+      },
+      "cache": {
+        "total": "3.00 GB"
+      },
+      "swap": {
+        "total": "15.11 GB"
+      }
+    },
+    "disque": {
+      "total": "271.50 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "Dell Inc.",
+        "Version": "1.43.0",
+        "Date de sortie": "02/26/2025"
+      },
+      "Carte mère": {
+        "Fabricant": "Dell Inc.",
+        "Modèle": "095HH7"
+      }
+    },
+    "resolution_ecran": "1920x1080",
+    "adresse_mac": "10:5b:ad:53:f2:35",
+    "interfaces_reseau": 4,
+    "peripheriques_usb": 7
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "KYhy5Ye3TM2ZUvlMHT6Hhg==",
+      "subType": "03"
+    }
+  },
+  "name": "ngapout-Latitude-5490",
+  "username": "volunteer_8e743b58",
+  "password": "ac064822a54247ea844192d88f0cfdaa",
+  "cpu_model": "x86_64",
+  "cpu_cores": 8,
+  "total_ram": 7,
+  "available_storage": 159,
+  "operating_system": "Linux #63~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Apr 22 19:00:15 UTC 2",
+  "last_update": {
+    "$date": "2025-06-23T13:41:24.871Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "10.210.82.51",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-23T14:17:17.073Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#63~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Apr 22 19:00:15 UTC 2",
+      "architecture": "x86_64",
+      "hostname": "ngapout-Latitude-5490"
+    },
+    "cpu": {
+      "type": "x86_64",
+      "coeurs_physiques": 4,
+      "coeurs_logiques": 8,
+      "frequence": {
+        "min": 400,
+        "max": 3400
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "7.62 GB"
+      },
+      "cache": {
+        "total": "3.27 GB"
+      },
+      "swap": {
+        "total": "2.00 GB"
+      }
+    },
+    "disque": {
+      "total": "159.84 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "Dell Inc.",
+        "Version": "1.38.0",
+        "Date de sortie": "11/06/2024"
+      },
+      "Carte mère": {
+        "Fabricant": "Dell Inc.",
+        "Modèle": "08NJ82"
+      }
+    },
+    "resolution_ecran": "1360x768",
+    "adresse_mac": "9f:e9:fd:93:52:69",
+    "interfaces_reseau": 4,
+    "peripheriques_usb": 4
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "6QcYD1EhTouaYqdCW0drLQ==",
+      "subType": "03"
+    }
+  },
+  "name": "hamedsalim",
+  "username": "volunteer_284f90f8",
+  "password": "bce1dab8d9ec408290a50c3a7fb92e5a",
+  "cpu_model": "x86_64",
+  "cpu_cores": 4,
+  "total_ram": 1024,
+  "available_storage": 10,
+  "operating_system": "Linux #61~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Apr 15 17:03:15 UTC 2",
+  "last_update": {
+    "$date": "2025-06-23T13:41:25.520Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "127.0.1.1",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-23T14:17:12.260Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#61~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Apr 15 17:03:15 UTC 2",
+      "architecture": "x86_64",
+      "hostname": "hamedsalim"
+    },
+    "cpu": {
+      "type": "x86_64",
+      "coeurs_physiques": 2,
+      "coeurs_logiques": 4,
+      "frequence": {
+        "min": 400,
+        "max": 2800
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "7.64 GB"
+      },
+      "cache": {
+        "total": "3.11 GB"
+      },
+      "swap": {
+        "total": "977.00 MB"
+      }
+    },
+    "disque": {
+      "total": "121.87 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "HP",
+        "Version": "N76 Ver. 01.09",
+        "Date de sortie": "06/08/2017"
+      },
+      "Carte mère": {
+        "Fabricant": "HP",
+        "Modèle": "80FD"
+      }
+    },
+    "resolution_ecran": "1360x768",
+    "adresse_mac": "2f:89:1c:f6:a8:1f",
+    "interfaces_reseau": 5,
+    "peripheriques_usb": 4
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "sWl7DFfeSX6Ior/tRPqCBA==",
+      "subType": "03"
+    }
+  },
+  "name": "archlinux",
+  "username": "volunteer_2e980e05",
+  "password": "fe21a84613f6404d9b9beb57e39e2dab",
+  "cpu_model": "",
+  "cpu_cores": 12,
+  "total_ram": 7,
+  "available_storage": 232,
+  "operating_system": "Linux #1 SMP PREEMPT_DYNAMIC Tue, 10 Jun 2025 21:32:33 +0000",
+  "last_update": {
+    "$date": "2025-06-23T13:42:30.785Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "10.210.82.118",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": null,
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#1 SMP PREEMPT_DYNAMIC Tue, 10 Jun 2025 21:32:33 +0000",
+      "architecture": "x86_64",
+      "hostname": "archlinux"
+    },
+    "cpu": {
+      "type": "",
+      "coeurs_physiques": 6,
+      "coeurs_logiques": 12,
+      "frequence": {
+        "min": 423.17299999999983,
+        "max": 2301
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "7.07 GB"
+      },
+      "cache": {
+        "total": "1.80 GB"
+      },
+      "swap": {
+        "total": "11.53 GB"
+      }
+    },
+    "disque": {
+      "total": "232.69 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "Insyde",
+        "Version": "F.14",
+        "Date de sortie": "07/05/2023"
+      },
+      "Carte mère": {
+        "Fabricant": "HP",
+        "Modèle": "8A31"
+      }
+    },
+    "resolution_ecran": "1920x1080",
+    "adresse_mac": "d8:80:83:2c:fa:75",
+    "interfaces_reseau": 3,
+    "peripheriques_usb": 6
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "d23yj88hRimm3t2POnb/Uw==",
+      "subType": "03"
+    }
+  },
+  "name": "miguelgauss-X202E",
+  "username": "volunteer_344bc800",
+  "password": "00a8419471414d3e80b658b9fa45f753",
+  "cpu_model": "x86_64",
+  "cpu_cores": 4,
+  "total_ram": 3,
+  "available_storage": 233,
+  "operating_system": "Linux #63~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Apr 22 19:00:15 UTC 2",
+  "last_update": {
+    "$date": "2025-06-23T13:42:34.090Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "192.168.1.114",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-23T14:17:11.221Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#63~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Apr 22 19:00:15 UTC 2",
+      "architecture": "x86_64",
+      "hostname": "miguelgauss-X202E"
+    },
+    "cpu": {
+      "type": "x86_64",
+      "coeurs_physiques": 2,
+      "coeurs_logiques": 4,
+      "frequence": {
+        "min": 800,
+        "max": 1800
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "3.71 GB"
+      },
+      "cache": {
+        "total": "1.49 GB"
+      },
+      "swap": {
+        "total": "3.92 GB"
+      }
+    },
+    "disque": {
+      "total": "233.90 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "American Megatrends Inc.",
+        "Version": "X202E.208",
+        "Date de sortie": "02/04/2013"
+      },
+      "Carte mère": {
+        "Fabricant": "ASUSTeK COMPUTER INC.",
+        "Modèle": "X202E"
+      }
+    },
+    "resolution_ecran": "1360x768",
+    "adresse_mac": "4f:cf:2f:a9:e9:b1",
+    "interfaces_reseau": 5,
+    "peripheriques_usb": 8
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "TjH0v7jUTHGAOZEK+VB5EQ==",
+      "subType": "03"
+    }
+  },
+  "name": "NW-LS",
+  "username": "volunteer_3c5984a2",
+  "password": "42cb575a72ad48a9a4ce4e00e1cab90b",
+  "cpu_model": "x86_64",
+  "cpu_cores": 8,
+  "total_ram": 7,
+  "available_storage": 46,
+  "operating_system": "Linux #53~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Wed Jan 15 19:18:46 UTC 2",
+  "last_update": {
+    "$date": "2025-06-23T13:44:10.115Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "192.168.43.198",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-23T13:44:10.774Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#53~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Wed Jan 15 19:18:46 UTC 2",
+      "architecture": "x86_64",
+      "hostname": "NW-LS"
+    },
+    "cpu": {
+      "type": "x86_64",
+      "coeurs_physiques": 4,
+      "coeurs_logiques": 8,
+      "frequence": {
+        "min": 400,
+        "max": 4000
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "7.65 GB"
+      },
+      "cache": {
+        "total": "4.00 GB"
+      },
+      "swap": {
+        "total": "3.81 GB"
+      }
+    },
+    "disque": {
+      "total": "46.63 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "HP",
+        "Version": "Q85 Ver. 01.23.00",
+        "Date de sortie": "11/29/2022"
+      },
+      "Carte mère": {
+        "Fabricant": "HP",
+        "Modèle": "837D"
+      }
+    },
+    "resolution_ecran": "primary",
+    "adresse_mac": "6b:25:d4:5a:f8:fa",
+    "interfaces_reseau": 4,
+    "peripheriques_usb": 5
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "UCArn1e0Sxu/DsBCrfCUlA==",
+      "subType": "03"
+    }
+  },
+  "name": "carole-Satellite-L350",
+  "username": "volunteer_9891b04b",
+  "password": "d00975386c4c4405ae5d72270ab77fa9",
+  "cpu_model": "x86_64",
+  "cpu_cores": 2,
+  "total_ram": 3,
+  "available_storage": 95,
+  "operating_system": "Linux #41-Ubuntu SMP PREEMPT_DYNAMIC Fri Aug  2 20:41:06 UTC 2024",
+  "last_update": {
+    "$date": "2025-06-23T13:44:49.061Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "10.210.82.46",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-23T14:17:24.625Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#41-Ubuntu SMP PREEMPT_DYNAMIC Fri Aug  2 20:41:06 UTC 2024",
+      "architecture": "x86_64",
+      "hostname": "carole-Satellite-L350"
+    },
+    "cpu": {
+      "type": "x86_64",
+      "coeurs_physiques": 2,
+      "coeurs_logiques": 2,
+      "frequence": {
+        "min": 1200,
+        "max": 2100
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "3.82 GB"
+      },
+      "cache": {
+        "total": "1.05 GB"
+      },
+      "swap": {
+        "total": "3.82 GB"
+      }
+    },
+    "disque": {
+      "total": "95.56 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "INSYDE",
+        "Version": "1.10",
+        "Date de sortie": "08/05/2009"
+      },
+      "Carte mère": {
+        "Fabricant": "TOSHIBA",
+        "Modèle": "Portable PC"
+      }
+    },
+    "resolution_ecran": "1440x900",
+    "adresse_mac": "00:1e:33:f4:46:4e",
+    "interfaces_reseau": 4,
+    "peripheriques_usb": 9
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "zcV7J3/TT9efoxp0ynFdaw==",
+      "subType": "03"
+    }
+  },
+  "name": "bonice-Latitude-E6430",
+  "username": "volunteer_407ba6b7",
+  "password": "1110906371e0498aa6fea2cd1a30627e",
+  "cpu_model": "",
+  "cpu_cores": 4,
+  "total_ram": 7,
+  "available_storage": 245,
+  "operating_system": "Linux #1 SMP PREEMPT_DYNAMIC Debian 6.1.128-1 (2025-02-07)",
+  "last_update": {
+    "$date": "2025-06-23T13:45:03.813Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "192.168.225.43",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-23T13:45:09.534Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#1 SMP PREEMPT_DYNAMIC Debian 6.1.128-1 (2025-02-07)",
+      "architecture": "x86_64",
+      "hostname": "bonice-Latitude-E6430"
+    },
+    "cpu": {
+      "type": "",
+      "coeurs_physiques": 2,
+      "coeurs_logiques": 4,
+      "frequence": {
+        "min": 1200,
+        "max": 3300
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "7.66 GB"
+      },
+      "cache": {
+        "total": "2.47 GB"
+      },
+      "swap": {
+        "total": "975.00 MB"
+      }
+    },
+    "disque": {
+      "total": "245.85 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "Dell Inc.",
+        "Version": "A16",
+        "Date de sortie": "08/19/2014"
+      },
+      "Carte mère": {
+        "Fabricant": "Dell Inc.",
+        "Modèle": "0H3MT5"
+      }
+    },
+    "resolution_ecran": "primary",
+    "adresse_mac": "60:67:20:67:eb:f2",
+    "interfaces_reseau": 11,
+    "peripheriques_usb": 7
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "CsxRGWKIRSCEAC9ntBQhbQ==",
+      "subType": "03"
+    }
+  },
+  "name": "youms-VirtualBox",
+  "username": "volunteer_6a06ac03",
+  "password": "b90d7cc4da8a4a8d9338f8aaefef6bd4",
+  "cpu_model": "x86_64",
+  "cpu_cores": 4,
+  "total_ram": 11,
+  "available_storage": 58,
+  "operating_system": "Linux #63~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Apr 22 19:00:15 UTC 2",
+  "last_update": {
+    "$date": "2025-06-23T13:45:10.626Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "10.0.2.15",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-23T14:17:17.755Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#63~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Apr 22 19:00:15 UTC 2",
+      "architecture": "x86_64",
+      "hostname": "youms-VirtualBox"
+    },
+    "cpu": {
+      "type": "x86_64",
+      "coeurs_physiques": 4,
+      "coeurs_logiques": 4,
+      "frequence": {
+        "min": 0,
+        "max": 0
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "11.68 GB"
+      },
+      "cache": {
+        "total": "7.05 GB"
+      },
+      "swap": {
+        "total": "3.81 GB"
+      }
+    },
+    "disque": {
+      "total": "58.26 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "innotek GmbH",
+        "Version": "VirtualBox",
+        "Date de sortie": "12/01/2006"
+      },
+      "Carte mère": {
+        "Fabricant": "Oracle Corporation",
+        "Modèle": "VirtualBox"
+      }
+    },
+    "resolution_ecran": "primary",
+    "adresse_mac": "c1:cd:36:48:5b:a7",
+    "interfaces_reseau": 6,
+    "peripheriques_usb": 3
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "+9+yN1xzSEqHQ4b3aIy20w==",
+      "subType": "03"
+    }
+  },
+  "name": "dimitri-pc",
+  "username": "volunteer_181ba8d5",
+  "password": "b096c95a808b4c1b9e69320fc332ea5c",
+  "cpu_model": "x86_64",
+  "cpu_cores": 4,
+  "total_ram": 7,
+  "available_storage": 95,
+  "operating_system": "Linux #63~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Apr 22 19:00:15 UTC 2",
+  "last_update": {
+    "$date": "2025-06-23T13:45:13.967Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "10.210.82.154",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-23T14:18:28.395Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#63~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Apr 22 19:00:15 UTC 2",
+      "architecture": "x86_64",
+      "hostname": "dimitri-pc"
+    },
+    "cpu": {
+      "type": "x86_64",
+      "coeurs_physiques": 2,
+      "coeurs_logiques": 4,
+      "frequence": {
+        "min": 400,
+        "max": 3000
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "7.58 GB"
+      },
+      "cache": {
+        "total": "3.15 GB"
+      },
+      "swap": {
+        "total": "0.00 B"
+      }
+    },
+    "disque": {
+      "total": "95.56 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "Dell Inc.",
+        "Version": "1.1.4",
+        "Date de sortie": "01/17/2016"
+      },
+      "Carte mère": {
+        "Fabricant": "Dell Inc.",
+        "Modèle": "0DVGHJ"
+      }
+    },
+    "resolution_ecran": "1360x768",
+    "adresse_mac": "1d:21:70:ab:46:aa",
+    "interfaces_reseau": 4,
+    "peripheriques_usb": 6
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "HF6FzRGOSr+NHhlTaAvlIg==",
+      "subType": "03"
+    }
+  },
+  "name": "morel",
+  "username": "volunteer_af84be22",
+  "password": "a8bc30b2871f4b3ea3fba7e2a6d0998a",
+  "cpu_model": "x86_64",
+  "cpu_cores": 4,
+  "total_ram": 1024,
+  "available_storage": 10,
+  "operating_system": "Linux #18~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Wed Feb  7 11:40:03 UTC 2",
+  "last_update": {
+    "$date": "2025-06-23T13:45:56.238Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "192.168.1.150",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-23T13:45:56.516Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#18~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Wed Feb  7 11:40:03 UTC 2",
+      "architecture": "x86_64",
+      "hostname": "morel"
+    },
+    "cpu": {
+      "type": "x86_64",
+      "coeurs_physiques": 2,
+      "coeurs_logiques": 4,
+      "frequence": {
+        "min": 400,
+        "max": 3500
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "7.63 GB"
+      },
+      "cache": {
+        "total": "4.54 GB"
+      },
+      "swap": {
+        "total": "2.00 GB"
+      }
+    },
+    "disque": {
+      "total": "233.18 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "Dell Inc.",
+        "Version": "1.26.0",
+        "Date de sortie": "06/08/2022"
+      },
+      "Carte mère": {
+        "Fabricant": "Dell Inc.",
+        "Modèle": "00F6D3"
+      }
+    },
+    "resolution_ecran": "primary",
+    "adresse_mac": "27:35:71:c1:8c:8f",
+    "interfaces_reseau": 5,
+    "peripheriques_usb": 5
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "6Zdr6uOzR62scw6WbABM0g==",
+      "subType": "03"
+    }
+  },
+  "name": "debian",
+  "username": "volunteer_341ec935",
+  "password": "bc6123184bf8430382396e7252c9c2fd",
+  "cpu_model": "",
+  "cpu_cores": 4,
+  "total_ram": 7,
+  "available_storage": 27,
+  "operating_system": "Linux #1 SMP PREEMPT_DYNAMIC Debian 6.1.140-1 (2025-05-22)",
+  "last_update": {
+    "$date": "2025-06-23T13:48:02.828Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "192.168.225.18",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-23T13:48:03.590Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#1 SMP PREEMPT_DYNAMIC Debian 6.1.140-1 (2025-05-22)",
+      "architecture": "x86_64",
+      "hostname": "debian"
+    },
+    "cpu": {
+      "type": "",
+      "coeurs_physiques": 2,
+      "coeurs_logiques": 4,
+      "frequence": {
+        "min": 800,
+        "max": 2700
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "7.66 GB"
+      },
+      "cache": {
+        "total": "1.64 GB"
+      },
+      "swap": {
+        "total": "977.00 MB"
+      }
+    },
+    "disque": {
+      "total": "27.33 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "Dell Inc.",
+        "Version": "A23",
+        "Date de sortie": "10/08/2018"
+      },
+      "Carte mère": {
+        "Fabricant": "Dell Inc.",
+        "Modèle": "03CHJ4"
+      }
+    },
+    "resolution_ecran": "primary",
+    "adresse_mac": "80:19:34:a2:45:5e",
+    "interfaces_reseau": 4,
+    "peripheriques_usb": 7
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "RiCqIaxtSN2eKIFm8v9TEg==",
+      "subType": "03"
+    }
+  },
+  "name": "belvine-HP-250-15-6-inch-G9-Notebook-PC",
+  "username": "volunteer_be9faf63",
+  "password": "875f82aecc8148629ce09f6e726dc878",
+  "cpu_model": "x86_64",
+  "cpu_cores": 8,
+  "total_ram": 7,
+  "available_storage": 68,
+  "operating_system": "Linux #63~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Apr 22 19:00:15 UTC 2",
+  "last_update": {
+    "$date": "2025-06-23T13:52:09.682Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "192.168.43.71",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-23T13:52:09.924Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#63~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Apr 22 19:00:15 UTC 2",
+      "architecture": "x86_64",
+      "hostname": "belvine-HP-250-15-6-inch-G9-Notebook-PC"
+    },
+    "cpu": {
+      "type": "x86_64",
+      "coeurs_physiques": 6,
+      "coeurs_logiques": 8,
+      "frequence": {
+        "min": 400,
+        "max": 3850
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "7.44 GB"
+      },
+      "cache": {
+        "total": "3.63 GB"
+      },
+      "swap": {
+        "total": "2.00 GB"
+      }
+    },
+    "disque": {
+      "total": "68.03 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "Insyde",
+        "Version": "F.66",
+        "Date de sortie": "05/10/2024"
+      },
+      "Carte mère": {
+        "Fabricant": "HP",
+        "Modèle": "8A1D"
+      }
+    },
+    "resolution_ecran": "primary",
+    "adresse_mac": "6d:87:18:32:41:84",
+    "interfaces_reseau": 6,
+    "peripheriques_usb": 4
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "9ViU2g5WRL2WF8JytLurRA==",
+      "subType": "03"
+    }
+  },
+  "name": "ashley-HP-Laptop-15-da0xxx",
+  "username": "volunteer_5a32dcc0",
+  "password": "554e855e05ae410eac491d53c5958dfe",
+  "cpu_model": "x86_64",
+  "cpu_cores": 8,
+  "total_ram": 7,
+  "available_storage": 144,
+  "operating_system": "Linux #63~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Apr 22 19:00:15 UTC 2",
+  "last_update": {
+    "$date": "2025-06-23T13:58:02.748Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "10.210.82.204",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-23T14:17:15.319Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#63~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Apr 22 19:00:15 UTC 2",
+      "architecture": "x86_64",
+      "hostname": "ashley-HP-Laptop-15-da0xxx"
+    },
+    "cpu": {
+      "type": "x86_64",
+      "coeurs_physiques": 4,
+      "coeurs_logiques": 8,
+      "frequence": {
+        "min": 400,
+        "max": 2075
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "7.54 GB"
+      },
+      "cache": {
+        "total": "2.30 GB"
+      },
+      "swap": {
+        "total": "1.91 GB"
+      }
+    },
+    "disque": {
+      "total": "144.94 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "Insyde",
+        "Version": "F.36",
+        "Date de sortie": "02/03/2021"
+      },
+      "Carte mère": {
+        "Fabricant": "HP",
+        "Modèle": "84A6"
+      }
+    },
+    "resolution_ecran": "1360x768",
+    "adresse_mac": "db:e4:0e:b3:44:f4",
+    "interfaces_reseau": 6,
+    "peripheriques_usb": 6
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "i8QeSEKFRnqO9kEZOQAtjA==",
+      "subType": "03"
+    }
+  },
+  "name": "jean-machine",
+  "username": "volunteer_3f20a4c9",
+  "password": "57f8afe672404efa8c1f48ae50db6ebe",
+  "cpu_model": "x86_64",
+  "cpu_cores": 2,
+  "total_ram": 3,
+  "available_storage": 38,
+  "operating_system": "Linux #26~24.04.1-Ubuntu SMP PREEMPT_DYNAMIC Thu Apr 17 19:20:47 UTC 2",
+  "last_update": {
+    "$date": "2025-06-23T14:00:30.576Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "10.0.2.15",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-23T14:00:31.132Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#26~24.04.1-Ubuntu SMP PREEMPT_DYNAMIC Thu Apr 17 19:20:47 UTC 2",
+      "architecture": "x86_64",
+      "hostname": "jean-machine"
+    },
+    "cpu": {
+      "type": "x86_64",
+      "coeurs_physiques": 2,
+      "coeurs_logiques": 2,
+      "frequence": {
+        "min": 0,
+        "max": 0
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "3.81 GB"
+      },
+      "cache": {
+        "total": "1.48 GB"
+      },
+      "swap": {
+        "total": "3.81 GB"
+      }
+    },
+    "disque": {
+      "total": "38.04 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "innotek GmbH",
+        "Version": "VirtualBox",
+        "Date de sortie": "12/01/2006"
+      },
+      "Carte mère": {
+        "Fabricant": "Oracle Corporation",
+        "Modèle": "VirtualBox"
+      }
+    },
+    "resolution_ecran": "primary",
+    "adresse_mac": "08:00:27:81:3d:6f",
+    "interfaces_reseau": 4,
+    "peripheriques_usb": 3
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "Ii7LuAx4Tk2GbKsSHlUDlQ==",
+      "subType": "03"
+    }
+  },
+  "name": "jean-machine",
+  "username": "volunteer_db63a72e",
+  "password": "849e40710a3341c494d2f8027ca7f681",
+  "cpu_model": "x86_64",
+  "cpu_cores": 2,
+  "total_ram": 3,
+  "available_storage": 38,
+  "operating_system": "Linux #26~24.04.1-Ubuntu SMP PREEMPT_DYNAMIC Thu Apr 17 19:20:47 UTC 2",
+  "last_update": {
+    "$date": "2025-06-23T14:07:28.996Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "10.0.2.15",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-23T14:07:29.308Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#26~24.04.1-Ubuntu SMP PREEMPT_DYNAMIC Thu Apr 17 19:20:47 UTC 2",
+      "architecture": "x86_64",
+      "hostname": "jean-machine"
+    },
+    "cpu": {
+      "type": "x86_64",
+      "coeurs_physiques": 2,
+      "coeurs_logiques": 2,
+      "frequence": {
+        "min": 0,
+        "max": 0
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "3.81 GB"
+      },
+      "cache": {
+        "total": "1.50 GB"
+      },
+      "swap": {
+        "total": "3.81 GB"
+      }
+    },
+    "disque": {
+      "total": "38.04 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "innotek GmbH",
+        "Version": "VirtualBox",
+        "Date de sortie": "12/01/2006"
+      },
+      "Carte mère": {
+        "Fabricant": "Oracle Corporation",
+        "Modèle": "VirtualBox"
+      }
+    },
+    "resolution_ecran": "primary",
+    "adresse_mac": "08:00:27:81:3d:6f",
+    "interfaces_reseau": 4,
+    "peripheriques_usb": 3
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "45HBgfTLRYq37wfSXb1D3Q==",
+      "subType": "03"
+    }
+  },
+  "name": "archlinux",
+  "username": "volunteer_6663275b",
+  "password": "e08e3fb6b324492e969864b89adbcc6a",
+  "cpu_model": "",
+  "cpu_cores": 12,
+  "total_ram": 7,
+  "available_storage": 232,
+  "operating_system": "Linux #1 SMP PREEMPT_DYNAMIC Tue, 10 Jun 2025 21:32:33 +0000",
+  "last_update": {
+    "$date": "2025-06-23T14:17:11.571Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "10.210.82.118",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-23T14:17:11.791Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#1 SMP PREEMPT_DYNAMIC Tue, 10 Jun 2025 21:32:33 +0000",
+      "architecture": "x86_64",
+      "hostname": "archlinux"
+    },
+    "cpu": {
+      "type": "",
+      "coeurs_physiques": 6,
+      "coeurs_logiques": 12,
+      "frequence": {
+        "min": 423.17299999999983,
+        "max": 2301
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "7.07 GB"
+      },
+      "cache": {
+        "total": "1.89 GB"
+      },
+      "swap": {
+        "total": "11.53 GB"
+      }
+    },
+    "disque": {
+      "total": "232.69 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "Insyde",
+        "Version": "F.14",
+        "Date de sortie": "07/05/2023"
+      },
+      "Carte mère": {
+        "Fabricant": "HP",
+        "Modèle": "8A31"
+      }
+    },
+    "resolution_ecran": "1920x1080",
+    "adresse_mac": "d8:80:83:2c:fa:75",
+    "interfaces_reseau": 3,
+    "peripheriques_usb": 6
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "qRmWBwdTRYK3KsEfVzmWTw==",
+      "subType": "03"
+    }
+  },
+  "name": "morel",
+  "username": "volunteer_6b15d37b",
+  "password": "41648c7d454e422c9ee6467c490a86a1",
+  "cpu_model": "x86_64",
+  "cpu_cores": 4,
+  "total_ram": 1024,
+  "available_storage": 10,
+  "operating_system": "Linux #18~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Wed Feb  7 11:40:03 UTC 2",
+  "last_update": {
+    "$date": "2025-06-23T14:17:35.837Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "192.168.1.150",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-23T14:17:36.020Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#18~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Wed Feb  7 11:40:03 UTC 2",
+      "architecture": "x86_64",
+      "hostname": "morel"
+    },
+    "cpu": {
+      "type": "x86_64",
+      "coeurs_physiques": 2,
+      "coeurs_logiques": 4,
+      "frequence": {
+        "min": 400,
+        "max": 3500
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "7.63 GB"
+      },
+      "cache": {
+        "total": "4.99 GB"
+      },
+      "swap": {
+        "total": "2.00 GB"
+      }
+    },
+    "disque": {
+      "total": "233.18 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "Dell Inc.",
+        "Version": "1.26.0",
+        "Date de sortie": "06/08/2022"
+      },
+      "Carte mère": {
+        "Fabricant": "Dell Inc.",
+        "Modèle": "00F6D3"
+      }
+    },
+    "resolution_ecran": "primary",
+    "adresse_mac": "27:35:71:c1:8c:8f",
+    "interfaces_reseau": 5,
+    "peripheriques_usb": 5
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "MB2K8xnZQdCIvfg41abx9A==",
+      "subType": "03"
+    }
+  },
+  "name": "Kamron",
+  "username": "volunteer_0f43590a",
+  "password": "22b41baec50143279d07ae9e26ac401f",
+  "cpu_model": "x86_64",
+  "cpu_cores": 4,
+  "total_ram": 9,
+  "available_storage": 135,
+  "operating_system": "Linux #149~20.04.1-Ubuntu SMP Wed Apr 16 08:29:56 UTC 2025",
+  "last_update": {
+    "$date": "2025-06-23T14:46:40.195Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "192.168.1.131",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 0,
+    "tasks_completed": 0,
+    "tasks_failed": 0,
+    "trust_score": 50,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-23T14:46:40.423Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#149~20.04.1-Ubuntu SMP Wed Apr 16 08:29:56 UTC 2025",
+      "architecture": "x86_64",
+      "hostname": "Kamron"
+    },
+    "cpu": {
+      "type": "x86_64",
+      "coeurs_physiques": 2,
+      "coeurs_logiques": 4,
+      "frequence": {
+        "min": 1200,
+        "max": 2400
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "9.59 GB"
+      },
+      "cache": {
+        "total": "4.71 GB"
+      },
+      "swap": {
+        "total": "2.00 GB"
+      }
+    },
+    "disque": {
+      "total": "135.87 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "Dell Inc.",
+        "Version": "A12",
+        "Date de sortie": "08/07/2013"
+      },
+      "Carte mère": {
+        "Fabricant": "Dell Inc.",
+        "Modèle": "0F5PHF"
+      }
+    },
+    "resolution_ecran": "primary",
+    "adresse_mac": "a3:13:53:6b:58:49",
+    "interfaces_reseau": 4,
+    "peripheriques_usb": 9
+  }
+},
+{
+  "_id": {
+    "$binary": {
+      "base64": "nbPTOMKxQ/2BO2nM4ZHAVQ==",
+      "subType": "03"
+    }
+  },
+  "name": "hp-ubuntu",
+  "username": "volunteer_80ad5515",
+  "password": "8d17717cf9fd425892d3b8b3a277f474",
+  "cpu_model": "x86_64",
+  "cpu_cores": 4,
+  "total_ram": 15,
+  "available_storage": 136,
+  "operating_system": "Linux #149~20.04.1-Ubuntu SMP Wed Apr 16 08:29:56 UTC 2025",
+  "last_update": {
+    "$date": "2025-06-23T20:05:34.461Z"
+  },
+  "current_status": "available",
+  "gpu_available": false,
+  "gpu_model": null,
+  "gpu_memory": null,
+  "ip_address": "192.168.1.165",
+  "communication_port": 8002,
+  "preferences": {},
+  "performance": {
+    "tasks_total": 2,
+    "tasks_completed": 2,
+    "tasks_failed": 0,
+    "trust_score": 100,
+    "avg_completion_time": 0,
+    "total_completion_time": 0,
+    "successful_assignments": 0,
+    "failed_assignments": 0
+  },
+  "last_activity": {
+    "$date": "2025-06-24T06:53:02.891Z"
+  },
+  "machine_info": {
+    "os": {
+      "nom": "Linux",
+      "version": "#149~20.04.1-Ubuntu SMP Wed Apr 16 08:29:56 UTC 2025",
+      "architecture": "x86_64",
+      "hostname": "hp-ubuntu"
+    },
+    "cpu": {
+      "type": "x86_64",
+      "coeurs_physiques": 2,
+      "coeurs_logiques": 4,
+      "frequence": {
+        "min": 400,
+        "max": 3100
+      }
+    },
+    "memoire": {
+      "ram": {
+        "total": "15.49 GB"
+      },
+      "cache": {
+        "total": "4.84 GB"
+      },
+      "swap": {
+        "total": "20.00 GB"
+      }
+    },
+    "disque": {
+      "total": "136.45 GB"
+    },
+    "gpu": {
+      "disponible": false
+    },
+    "bios_carte_mere": {
+      "BIOS": {
+        "Fabricant": "HP",
+        "Version": "P78 Ver. 01.47",
+        "Date de sortie": "06/16/2023"
+      },
+      "Carte mère": {
+        "Fabricant": "HP",
+        "Modèle": "828C"
+      }
+    },
+    "resolution_ecran": "primary",
+    "adresse_mac": "27:12:a9:af:e3:21",
+    "interfaces_reseau": 10,
+    "peripheriques_usb": 4
+  }
+}]

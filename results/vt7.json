@@ -1,0 +1,93 @@
+[
+  {
+    "id": "1500",
+    "assigned_at": "2025-07-01 14:06:53.447239",
+    "progress": "98.0",
+    "started_at": "NULL",
+    "completed_at": "NULL",
+    "status": "completed",
+    "result": "NULL",
+    "error": "NULL",
+    "task_id": "9eeab0b55f9748178b011b591cc89de6",
+    "volunteer_id": "e37fd10e109b45a48422d96e3bda98e5",
+    "accepted_at": "2025-07-01 14:06:56.944137"
+  },
+  {
+    "id": "1501",
+    "assigned_at": "2025-07-01 14:06:53.776106",
+    "progress": "98.0",
+    "started_at": "NULL",
+    "completed_at": "NULL",
+    "status": "Running",
+    "result": "NULL",
+    "error": "NULL",
+    "task_id": "f332fcdfa0834a18b3758af135c91383",
+    "volunteer_id": "e37fd10e109b45a48422d96e3bda98e5",
+    "accepted_at": "2025-07-01 14:07:00.647990"
+  },
+  {
+    "id": "1502",
+    "assigned_at": "2025-07-01 14:06:54.035806",
+    "progress": "100.0",
+    "started_at": "NULL",
+    "completed_at": "2025-07-01 14:08:27.165699",
+    "status": "completed",
+    "result": "{\"host\": \"192.168.2.106\", \"port\": 48709, \"path\": \"/files/\", \"output_files\": [\"output.txt\"]}",
+    "error": "NULL",
+    "task_id": "f96c1cd442d445f38b66a92536d0d236",
+    "volunteer_id": "998273f01c604fa6ad1aa707acff1029",
+    "accepted_at": "2025-07-01 14:06:57.689362"
+  },
+  {
+    "id": "1503",
+    "assigned_at": "2025-07-01 14:06:54.369948",
+    "progress": "0.0",
+    "started_at": "NULL",
+    "completed_at": "NULL",
+    "status": "ASSIGNED",
+    "result": "NULL",
+    "error": "NULL",
+    "task_id": "64cb47249c8d4d85b44e7b27ce04f4cd",
+    "volunteer_id": "531d070d22ab4d2eb65ddce20a5f90e5",
+    "accepted_at": "NULL"
+  },
+  {
+    "id": "1504",
+    "assigned_at": "2025-07-01 14:06:54.764555",
+    "progress": "100.0",
+    "started_at": "NULL",
+    "completed_at": "2025-07-01 14:13:02.661957",
+    "status": "completed",
+    "result": "{\"host\": \"192.168.1.165\", \"port\": 59601, \"path\": \"/files/\", \"output_files\": [\"output.txt\"]}",
+    "error": "NULL",
+    "task_id": "59638da9c012450cb9b5fe810c5ae11b",
+    "volunteer_id": "6673e2665ca641039c179f8bc1a5ef9c",
+    "accepted_at": "2025-07-01 14:07:03.805756"
+  },
+  {
+    "id": "1505",
+    "assigned_at": "2025-07-01 14:06:55.196038",
+    "progress": "0.0",
+    "started_at": "NULL",
+    "completed_at": "NULL",
+    "status": "ASSIGNED",
+    "result": "NULL",
+    "error": "NULL",
+    "task_id": "667cfa223b0f44c2a35b4c9fb308f419",
+    "volunteer_id": "75d66c769d3f457db21a5cad38604e82",
+    "accepted_at": "NULL"
+  },
+  {
+    "id": "1506",
+    "assigned_at": "2025-07-01 14:06:55.565928",
+    "progress": "100.0",
+    "started_at": "NULL",
+    "completed_at": "2025-07-01 14:10:47.481179",
+    "status": "completed",
+    "result": "{\"host\": \"192.168.2.124\", \"port\": 44461, \"path\": \"/files/\", \"output_files\": [\"output.txt\"]}",
+    "error": "NULL",
+    "task_id": "06935623a9e1443a9ce6536055cb60a7",
+    "volunteer_id": "983849a64ca5420dbdf404434418cdb0",
+    "accepted_at": "2025-07-01 14:07:04.565721"
+  }
+]
