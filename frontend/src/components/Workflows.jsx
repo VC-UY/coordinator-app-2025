@@ -29,11 +29,9 @@ function Workflows() {
       ]
     }
   ]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+
   const [selectedTask, setSelectedTask] = useState(null);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
-  const [expanded, setExpanded] = useState({});
 
   const fetchData = async () => {
     try {
@@ -156,7 +154,7 @@ function Workflows() {
         data={workflows}
         enableExpanding
         renderDetailPanel={renderDetailPanel}
-        muiTableBodyRowProps={({ row }) => ({ hover: true })}
+        muiTableBodyRowProps={() => ({ hover: true })}
         muiTableContainerProps={{ sx: { borderRadius: 2, boxShadow: 1, background: 'white' } }}
       />
       {/* Task Detail Dialog */}

@@ -1,5 +1,6 @@
+
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Paper, CircularProgress, Grid, Tab, Tabs, Card, CardContent, Divider } from '@mui/material';
+import { Box, Typography, Paper, CircularProgress, Grid, Tab, Tabs, Card, CardContent } from '@mui/material';
 import { 
   PieChart, Pie, Cell, Legend, Tooltip as RechartsTooltip, ResponsiveContainer, 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, AreaChart, Area,
@@ -14,10 +15,8 @@ import MemoryIcon from '@mui/icons-material/Memory';
 import MessageIcon from '@mui/icons-material/Message';
 import SpeedIcon from '@mui/icons-material/Speed';
 
-// TabPanel component for the tabs
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
-
   return (
     <div
       role="tabpanel"
@@ -27,7 +26,7 @@ function TabPanel(props) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ pt: 3 }}>
+        <Box sx={{ pt: 4 }}>
           {children}
         </Box>
       )}
@@ -35,39 +34,48 @@ function TabPanel(props) {
   );
 }
 
+const BRAND_COLORS = {
+  primary: '#002060',
+  secondary: '#00B0F0',
+  dark: '#001440',
+  accent: '#00D4FF',
+  white: '#FFFFFF',
+  black: '#000000',
+  gray: '#F5F7FA'
+};
+
 const STATUS_COLORS = {
-  CREATED: '#1976d2',
-  VALIDATED: '#0288d1',
-  SUBMITTED: '#42a5f5',
-  SPLITTING: '#7e57c2',
-  ASSIGNING: '#8d6e63',
-  PENDING: '#ed6c02',
-  RUNNING: '#2e7d32',
-  PAUSED: '#ffd600',
-  PARTIAL_FAILURE: '#fbc02d',
-  REASSIGNING: '#00bcd4',
-  AGGREGATING: '#ab47bc',
-  COMPLETED: '#00e676',
-  FAILED: '#d32f2f',
-  available: '#00e676',
-  busy: '#ed6c02',
-  offline: '#757575',
-  maintenance: '#ffd600',
+  CREATED: '#002060',
+  VALIDATED: '#00B0F0',
+  SUBMITTED: '#00D4FF',
+  SPLITTING: '#001440',
+  ASSIGNING: '#002060',
+  PENDING: '#00B0F0',
+  RUNNING: '#00D4FF',
+  PAUSED: '#001440',
+  PARTIAL_FAILURE: '#002060',
+  REASSIGNING: '#00B0F0',
+  AGGREGATING: '#00D4FF',
+  COMPLETED: '#001440',
+  FAILED: '#002060',
+  available: '#00D4FF',
+  busy: '#00B0F0',
+  offline: '#001440',
+  maintenance: '#002060',
 };
 
 const Analytics = () => {
   const [tabValue, setTabValue] = useState(0);
-  const [workflowStatusData, setWorkflowStatusData] = useState([]);
-  const [volunteerStatusData, setVolunteerStatusData] = useState([]);
-  const [taskPerformanceData, setTaskPerformanceData] = useState([]);
-  const [resourceUtilizationData, setResourceUtilizationData] = useState([]);
+  const [ setWorkflowStatusData] = useState([]);
+  const [ setVolunteerStatusData] = useState([]);
+  const [ setTaskPerformanceData] = useState([]);
+  const [ setResourceUtilizationData] = useState([]);
   const [communicationStatsData, setCommunicationStatsData] = useState({
     hourlyData: [],
     messageTypes: []
   });
   const [loadingCharts, setLoadingCharts] = useState(true);
 
-  // Handle tab change
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
   };
@@ -94,320 +102,219 @@ const Analytics = () => {
   }, []);
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, background: '#f5f6fa', minHeight: '100vh' }}>
-      {/* Header */}
-      <Paper elevation={3} sx={{ p: 3, mb: 4, borderRadius: 3, background: 'linear-gradient(90deg, #1976d2 0%, #42a5f5 100%)', color: 'white' }}>
-        <Typography variant="h4" fontWeight={700} gutterBottom>
-          Performance & Analytics
-        </Typography>
-        <Typography variant="subtitle1">
-          Visualize key system metrics, workflow status distribution, and volunteer status at a glance.
-        </Typography>
+    <Box sx={{ 
+      p: { xs: 2, md: 4 }, 
+      background: `linear-gradient(135deg, ${BRAND_COLORS.gray} 0%, ${BRAND_COLORS.white} 100%)`, 
+      minHeight: '100vh' 
+    }}>
+      {/* Header avec animation */}
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          p: 4, 
+          mb: 4, 
+          borderRadius: 4,
+          background: `linear-gradient(135deg, ${BRAND_COLORS.primary} 0%, ${BRAND_COLORS.dark} 50%, ${BRAND_COLORS.secondary} 100%)`,
+          color: BRAND_COLORS.white,
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: '-50%',
+            right: '-50%',
+            width: '200%',
+            height: '200%',
+            background: `radial-gradient(circle, ${BRAND_COLORS.accent}22 0%, transparent 70%)`,
+            animation: 'rotate 20s linear infinite',
+          },
+          '@keyframes rotate': {
+            '0%': { transform: 'rotate(0deg)' },
+            '100%': { transform: 'rotate(360deg)' }
+          }
+        }}
+      >
+        <Box sx={{ position: 'relative', zIndex: 1 }}>
+          <Typography variant="h3" fontWeight={700} gutterBottom sx={{ letterSpacing: 1 }}>
+            VolunSys-UY1
+          </Typography>
+          <Typography variant="h6" sx={{ opacity: 0.95, fontWeight: 300, mt: 1 }}>
+            La puissance collective au service du calcul scientifique
+          </Typography>
+        </Box>
       </Paper>
 
-      {/* Tabs for different analytics views */}
-      <Paper elevation={1} sx={{ mb: 4, borderRadius: 2 }}>
+      {/* Tabs avec style moderne */}
+      <Paper 
+        elevation={0} 
+        sx={{ 
+          mb: 4, 
+          borderRadius: 4,
+          overflow: 'hidden',
+          border: `1px solid ${BRAND_COLORS.secondary}22`
+        }}
+      >
         <Tabs 
           value={tabValue} 
           onChange={handleTabChange} 
           variant="fullWidth"
-          textColor="primary"
-          indicatorColor="primary"
+          sx={{
+            bgcolor: BRAND_COLORS.white,
+            '& .MuiTab-root': {
+              color: BRAND_COLORS.primary,
+              fontWeight: 600,
+              py: 2.5,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                bgcolor: `${BRAND_COLORS.secondary}11`,
+                transform: 'translateY(-2px)'
+              },
+              '&.Mui-selected': {
+                color: BRAND_COLORS.white,
+                bgcolor: BRAND_COLORS.primary,
+              }
+            },
+            '& .MuiTabs-indicator': {
+              display: 'none'
+            }
+          }}
         >
-          <Tab icon={<AssessmentIcon />} label="Status Overview" />
-          <Tab icon={<SpeedIcon />} label="Performance Metrics" />
-          <Tab icon={<MemoryIcon />} label="Resource Utilization" />
-          <Tab icon={<MessageIcon />} label="Communication Analytics" />
+          <Tab icon={<AssessmentIcon />} label="Vue d'ensemble" />
+          <Tab icon={<SpeedIcon />} label="Performances" />
+          <Tab icon={<MemoryIcon />} label="Ressources" />
+          <Tab icon={<MessageIcon />} label="Communications" />
         </Tabs>
 
         {/* Status Overview Tab */}
         <TabPanel value={tabValue} index={0}>
-          <Grid container spacing={3} mb={4}>
-            <Grid item xs={12} md={6}>
-              <Paper elevation={1} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
-                <Typography variant="h6" fontWeight={600} mb={2}>Workflows by Status</Typography>
-                {loadingCharts ? <CircularProgress size={20} /> : (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={workflowStatusData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        nameKey="name"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {workflowStatusData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name] || `#${Math.floor(Math.random()*16777215).toString(16)}`} />
+          <Box sx={{ p: 3 }}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <Paper 
+                  elevation={0} 
+                  sx={{ 
+                    p: 3, 
+                    borderRadius: 3, 
+                    height: '100%',
+                    bgcolor: BRAND_COLORS.white,
+                    border: `1px solid ${BRAND_COLORS.secondary}22`,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      boxShadow: `0 8px 32px ${BRAND_COLORS.secondary}33`,
+                      transform: 'translateY(-4px)'
+                    }
+                  }}
+                >
+                  <Typography variant="h6" fontWeight={600} mb={3} color={BRAND_COLORS.primary}>
+                    Résumé des communications
+                  </Typography>
+                  <Box sx={{ mt: 2 }}>
+                    {loadingCharts ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
+                        <CircularProgress sx={{ color: BRAND_COLORS.secondary }} size={40} />
+                      </Box>
+                    ) : (
+                      <Grid container spacing={2}>
+                        {[
+                          { 
+                            title: 'Total Messages Aujourd\'hui', 
+                            value: communicationStatsData.hourlyData?.reduce((sum, hour) => sum + (hour.total || 0), 0) || 0, 
+                            color: BRAND_COLORS.primary,
+                            gradient: `linear-gradient(135deg, ${BRAND_COLORS.primary} 0%, ${BRAND_COLORS.dark} 100%)`
+                          },
+                          { 
+                            title: 'Messages Manager', 
+                            value: communicationStatsData.hourlyData?.reduce((sum, hour) => sum + (hour.managerMessages || 0), 0) || 0, 
+                            color: BRAND_COLORS.secondary,
+                            gradient: `linear-gradient(135deg, ${BRAND_COLORS.secondary} 0%, ${BRAND_COLORS.accent} 100%)`
+                          },
+                          { 
+                            title: 'Messages Volontaires', 
+                            value: communicationStatsData.hourlyData?.reduce((sum, hour) => sum + (hour.volunteerMessages || 0), 0) || 0, 
+                            color: BRAND_COLORS.accent,
+                            gradient: `linear-gradient(135deg, ${BRAND_COLORS.accent} 0%, ${BRAND_COLORS.secondary} 100%)`
+                          },
+                          { 
+                            title: 'Messages Système', 
+                            value: communicationStatsData.hourlyData?.reduce((sum, hour) => sum + (hour.systemMessages || 0), 0) || 0, 
+                            color: BRAND_COLORS.dark,
+                            gradient: `linear-gradient(135deg, ${BRAND_COLORS.dark} 0%, ${BRAND_COLORS.primary} 100%)`
+                          }
+                        ].map((stat, index) => (
+                          <Grid item xs={6} key={index}>
+                            <Card 
+                              sx={{ 
+                                background: stat.gradient,
+                                height: '100%',
+                                borderRadius: 3,
+                                position: 'relative',
+                                overflow: 'hidden',
+                                transition: 'all 0.3s ease',
+                                '&:hover': {
+                                  transform: 'translateY(-8px) scale(1.02)',
+                                  boxShadow: `0 12px 40px ${stat.color}44`
+                                },
+                                '&::before': {
+                                  content: '""',
+                                  position: 'absolute',
+                                  top: '-50%',
+                                  right: '-50%',
+                                  width: '200%',
+                                  height: '200%',
+                                  background: `radial-gradient(circle, ${BRAND_COLORS.white}11 0%, transparent 70%)`,
+                                  animation: `rotate${index} 15s linear infinite`,
+                                },
+                                [`@keyframes rotate${index}`]: {
+                                  '0%': { transform: 'rotate(0deg)' },
+                                  '100%': { transform: 'rotate(360deg)' }
+                                }
+                              }}
+                            >
+                              <CardContent sx={{ position: 'relative', zIndex: 1 }}>
+                                <Typography variant="subtitle2" sx={{ color: BRAND_COLORS.white, opacity: 0.9, fontWeight: 500 }} gutterBottom>
+                                  {stat.title}
+                                </Typography>
+                                <Typography 
+                                  variant="h3" 
+                                  sx={{ 
+                                    color: BRAND_COLORS.white, 
+                                    fontWeight: 700,
+                                    mt: 1,
+                                    textShadow: `0 2px 10px ${BRAND_COLORS.black}33`
+                                  }}
+                                >
+                                  {stat.value}
+                                </Typography>
+                              </CardContent>
+                            </Card>
+                          </Grid>
                         ))}
-                      </Pie>
-                      <Legend />
-                      <RechartsTooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
-              </Paper>
+                      </Grid>
+                    )}
+                  </Box>
+                </Paper>
+              </Grid>
             </Grid>
-            <Grid item xs={12} md={6}>
-              <Paper elevation={1} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
-                <Typography variant="h6" fontWeight={600} mb={2}>Volunteers by Status</Typography>
-                {loadingCharts ? <CircularProgress size={20} /> : (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart
-                      data={volunteerStatusData}
-                      margin={{
-                        top: 5,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <RechartsTooltip />
-                      <Legend />
-                      <Bar dataKey="value" name="Count" fill="#8884d8">
-                        {volunteerStatusData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name] || `#${Math.floor(Math.random()*16777215).toString(16)}`} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </Paper>
-            </Grid>
-          </Grid>
-        </TabPanel>
-
-        {/* Performance Metrics Tab */}
-        <TabPanel value={tabValue} index={1}>
-          <Grid container spacing={3} mb={4}>
-            <Grid item xs={12} md={6}>
-              <Paper elevation={1} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
-                <Typography variant="h6" fontWeight={600} mb={2}>Task Execution Time by Type</Typography>
-                {loadingCharts ? <CircularProgress size={20} /> : (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart
-                      data={taskPerformanceData}
-                      margin={{
-                        top: 5,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis label={{ value: 'Minutes', angle: -90, position: 'insideLeft' }} />
-                      <RechartsTooltip />
-                      <Legend />
-                      <Bar dataKey="avgExecutionTime" name="Avg. Execution Time (min)" fill="#8884d8" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </Paper>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Paper elevation={1} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
-                <Typography variant="h6" fontWeight={600} mb={2}>Task Success Rate by Type</Typography>
-                {loadingCharts ? <CircularProgress size={20} /> : (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={taskPerformanceData}>
-                      <PolarGrid />
-                      <PolarAngleAxis dataKey="name" />
-                      <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                      <Radar name="Success Rate (%)" dataKey="successRate" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
-                      <Legend />
-                      <RechartsTooltip />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                )}
-              </Paper>
-            </Grid>
-            <Grid item xs={12}>
-              <Paper elevation={1} sx={{ p: 3, borderRadius: 2 }}>
-                <Typography variant="h6" fontWeight={600} mb={2}>Task Count by Type</Typography>
-                {loadingCharts ? <CircularProgress size={20} /> : (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart
-                      data={taskPerformanceData}
-                      margin={{
-                        top: 10,
-                        right: 30,
-                        left: 0,
-                        bottom: 0,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <RechartsTooltip />
-                      <Area type="monotone" dataKey="count" name="Number of Tasks" stroke="#82ca9d" fill="#82ca9d" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                )}
-              </Paper>
-            </Grid>
-          </Grid>
-        </TabPanel>
-
-        {/* Resource Utilization Tab */}
-        <TabPanel value={tabValue} index={2}>
-          <Grid container spacing={3} mb={4}>
-            <Grid item xs={12}>
-              <Paper elevation={1} sx={{ p: 3, borderRadius: 2 }}>
-                <Typography variant="h6" fontWeight={600} mb={2}>Resource Utilization by Volunteer</Typography>
-                {loadingCharts ? <CircularProgress size={20} /> : (
-                  <ResponsiveContainer width="100%" height={400}>
-                    <BarChart
-                      data={resourceUtilizationData}
-                      margin={{
-                        top: 20,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis label={{ value: 'Utilization (%)', angle: -90, position: 'insideLeft' }} />
-                      <RechartsTooltip />
-                      <Legend />
-                      <Bar dataKey="cpu" name="CPU %" fill="#8884d8" />
-                      <Bar dataKey="ram" name="RAM %" fill="#82ca9d" />
-                      <Bar dataKey="disk" name="Disk %" fill="#ffc658" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </Paper>
-            </Grid>
-            <Grid item xs={12}>
-              <Paper elevation={1} sx={{ p: 3, borderRadius: 2 }}>
-                <Typography variant="h6" fontWeight={600} mb={2}>Resource Utilization Comparison</Typography>
-                {loadingCharts ? <CircularProgress size={20} /> : (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <ScatterChart
-                      margin={{
-                        top: 20,
-                        right: 20,
-                        bottom: 20,
-                        left: 20,
-                      }}
-                    >
-                      <CartesianGrid />
-                      <XAxis type="number" dataKey="cpu" name="CPU %" unit="%" />
-                      <YAxis type="number" dataKey="ram" name="RAM %" unit="%" />
-                      <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} />
-                      <Scatter name="Resource Usage" data={resourceUtilizationData} fill="#8884d8">
-                        {resourceUtilizationData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.cpu > 70 || entry.ram > 70 ? '#ff7300' : '#82ca9d'} />
-                        ))}
-                      </Scatter>
-                    </ScatterChart>
-                  </ResponsiveContainer>
-                )}
-              </Paper>
-            </Grid>
-          </Grid>
-        </TabPanel>
-
-        {/* Communication Analytics Tab */}
-        <TabPanel value={tabValue} index={3}>
-          <Grid container spacing={3} mb={4}>
-            <Grid item xs={12}>
-              <Paper elevation={1} sx={{ p: 3, borderRadius: 2 }}>
-                <Typography variant="h6" fontWeight={600} mb={2}>Message Volume by Hour</Typography>
-                {loadingCharts ? <CircularProgress size={20} /> : (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart
-                      data={communicationStatsData.hourlyData || []}
-                      margin={{
-                        top: 5,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="time" />
-                      <YAxis />
-                      <RechartsTooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="managerMessages" name="Manager Messages" stroke="#8884d8" activeDot={{ r: 8 }} />
-                      <Line type="monotone" dataKey="volunteerMessages" name="Volunteer Messages" stroke="#82ca9d" />
-                      <Line type="monotone" dataKey="systemMessages" name="System Messages" stroke="#ffc658" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                )}
-              </Paper>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Paper elevation={1} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
-                <Typography variant="h6" fontWeight={600} mb={2}>Message Types Distribution</Typography>
-                {loadingCharts ? <CircularProgress size={20} /> : (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={communicationStatsData.messageTypes || []}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        nameKey="name"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {(communicationStatsData.messageTypes || []).map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={`#${Math.floor(Math.random()*16777215).toString(16)}`} />
-                        ))}
-                      </Pie>
-                      <Legend />
-                      <RechartsTooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
-              </Paper>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <Paper elevation={1} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
-                <Typography variant="h6" fontWeight={600} mb={2}>Communication Summary</Typography>
-                <Box sx={{ mt: 2 }}>
-                  {loadingCharts ? (
-                    <CircularProgress size={20} />
-                  ) : (
-                    <Grid container spacing={2}>
-                      {[
-                        { title: 'Total Messages Today', value: communicationStatsData.hourlyData?.reduce((sum, hour) => sum + hour.total, 0) || 0, color: '#1976d2' },
-                        { title: 'Manager Messages', value: communicationStatsData.hourlyData?.reduce((sum, hour) => sum + hour.managerMessages, 0) || 0, color: '#8884d8' },
-                        { title: 'Volunteer Messages', value: communicationStatsData.hourlyData?.reduce((sum, hour) => sum + hour.volunteerMessages, 0) || 0, color: '#82ca9d' },
-                        { title: 'System Messages', value: communicationStatsData.hourlyData?.reduce((sum, hour) => sum + hour.systemMessages, 0) || 0, color: '#ffc658' }
-                      ].map((stat, index) => (
-                        <Grid item xs={6} key={index}>
-                          <Card sx={{ bgcolor: '#f8f9fa', height: '100%' }}>
-                            <CardContent>
-                              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                                {stat.title}
-                              </Typography>
-                              <Typography variant="h4" sx={{ color: stat.color, fontWeight: 'bold' }}>
-                                {stat.value}
-                              </Typography>
-                            </CardContent>
-                          </Card>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  )}
-                </Box>
-              </Paper>
-            </Grid>
-          </Grid>
+          </Box>
         </TabPanel>
       </Paper>
+
+      {/* Footer avec branding */}
+      <Box 
+        sx={{ 
+          mt: 4, 
+          p: 3, 
+          textAlign: 'center',
+          borderTop: `2px solid ${BRAND_COLORS.secondary}22`
+        }}
+      >
+        <Typography variant="body2" sx={{ color: BRAND_COLORS.primary, fontWeight: 500 }}>
+          VolunSys-UY1 - La puissance collective au service du calcul scientifique
+        </Typography>
+        <Typography variant="caption" sx={{ color: BRAND_COLORS.black, opacity: 0.6, mt: 1, display: 'block' }}>
+          Plateforme de calcul distribué pour la recherche scientifique
+        </Typography>
+      </Box>
     </Box>
   );
 };

@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Grid, Paper, Button, Avatar, Stack, Divider, CircularProgress, Tooltip } from '@mui/material';
+import { Box, Typography, Grid, Paper, Button, Avatar, Stack, CircularProgress, Chip } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import GroupIcon from '@mui/icons-material/Group';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import ListAltIcon from '@mui/icons-material/ListAlt';
-import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import HealthAndSafetyIcon from '@mui/icons-material/HealthAndSafety';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { Link } from 'react-router-dom';
 import {
   fetchManagersCount,
@@ -23,79 +22,48 @@ import {
 import { PieChart, Pie, Cell, Legend, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 const Home = () => {
-  // State for dashboard stats
-  // Initialize with fallback data
   const [stats, setStats] = useState({
-    managers: 2,
-    volunteers: 5,
-    workflows: 3,
-    tasks: 10
+    managers: 0,
+    volunteers: 0,
+    workflows: 0,
+    tasks: 0
   });
-  const [loadingStats, setLoadingStats] = useState(true);
-  const [activeVolunteers, setActiveVolunteers] = useState([
-    { id: '1', name: 'Volunteer 1', status: 'available', last_update: new Date().toISOString() },
-    { id: '2', name: 'Volunteer 2', status: 'available', last_update: new Date().toISOString() },
-    { id: '3', name: 'Volunteer 3', status: 'available', last_update: new Date().toISOString() },
-    { id: '4', name: 'Volunteer 4', status: 'available', last_update: new Date().toISOString() },
-    { id: '5', name: 'Volunteer 5', status: 'available', last_update: new Date().toISOString() }
-  ]);
-  const [loadingVolunteers, setLoadingVolunteers] = useState(true);
-  const [errorVolunteers, setErrorVolunteers] = useState(null);
-  const [runningWorkflows, setRunningWorkflows] = useState([
-    { id: '1', name: 'Data Processing', status: 'RUNNING', owner: { username: 'admin' }, created_at: new Date().toISOString() },
-    { id: '2', name: 'Image Analysis', status: 'RUNNING', owner: { username: 'yves' }, created_at: new Date().toISOString() }
-  ]);
-  const [loadingRunningWorkflows, setLoadingRunningWorkflows] = useState(true);
-  const [errorRunningWorkflows, setErrorRunningWorkflows] = useState(null);
-  const [systemHealth, setSystemHealth] = useState({
-    status: 'ok',
-    details: {
-      database: 'connected',
-      active_volunteers: 3,
-      recent_errors: 0,
-      redis_connection: 'connected'
-    }
-  });
-  const [loadingHealth, setLoadingHealth] = useState(true);
-  const [errorHealth, setErrorHealth] = useState(null);
-  const [workflowStatusData, setWorkflowStatusData] = useState({
-    CREATED: 2,
-    RUNNING: 3,
-    COMPLETED: 5,
-    FAILED: 1
-  });
-  const [volunteerStatusData, setVolunteerStatusData] = useState({
-    available: 3,
-    busy: 2,
-    offline: 1
-  });
-  const [loadingCharts, setLoadingCharts] = useState(true);
+  const [setActiveVolunteers] = useState([]);
+  const [runningWorkflows, setRunningWorkflows] = useState([]);
+  const [systemHealth, setSystemHealth] = useState(null);
+  const [workflowStatusData, setWorkflowStatusData] = useState([]);
+  const [volunteerStatusData, setVolunteerStatusData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Color mapping for statuses
-  const STATUS_COLORS = {
-    CREATED: '#1976d2',
-    VALIDATED: '#0288d1',
-    SUBMITTED: '#42a5f5',
-    SPLITTING: '#7e57c2',
-    ASSIGNING: '#8d6e63',
-    PENDING: '#ed6c02',
-    RUNNING: '#2e7d32',
-    PAUSED: '#ffd600',
-    PARTIAL_FAILURE: '#fbc02d',
-    REASSIGNING: '#00bcd4',
-    AGGREGATING: '#ab47bc',
-    COMPLETED: '#00e676',
-    FAILED: '#d32f2f',
-    available: '#00e676',
-    busy: '#ed6c02',
-    offline: '#757575',
-    maintenance: '#ffd600',
+  const COLORS = {
+    primary: '#002060',
+    secondary: '#00B0F0',
+    dark: '#001440',
+    light: '#00D4FF',
   };
 
-  // Function to fetch all dashboard data
+  const STATUS_COLORS = {
+    CREATED: COLORS.primary,
+    VALIDATED: COLORS.secondary,
+    SUBMITTED: COLORS.light,
+    SPLITTING: COLORS.dark,
+    ASSIGNING: COLORS.primary,
+    PENDING: COLORS.secondary,
+    RUNNING: COLORS.light,
+    PAUSED: COLORS.dark,
+    PARTIAL_FAILURE: COLORS.primary,
+    REASSIGNING: COLORS.secondary,
+    AGGREGATING: COLORS.light,
+    COMPLETED: COLORS.secondary,
+    FAILED: COLORS.primary,
+    available: COLORS.light,
+    busy: COLORS.secondary,
+    offline: COLORS.dark,
+    maintenance: COLORS.primary,
+  };
+
   const fetchAllData = async () => {
     try {
-      // Fetch all data in parallel
       const [statsData, volunteerData, workflowsData, healthData, chartsData] = await Promise.all([
         Promise.all([
           fetchManagersCount(),
@@ -112,212 +80,408 @@ const Home = () => {
         ])
       ]);
 
-      // Compare and update stats only if changed
       const [managers, volunteers, workflows, tasks] = statsData;
-      const currentStats = { managers, volunteers, workflows, tasks };
-      if (JSON.stringify(currentStats) !== JSON.stringify(stats)) {
-        setStats(currentStats);
-      }
+      setStats({ managers, volunteers, workflows, tasks });
+      setActiveVolunteers(volunteerData);
+      setRunningWorkflows(workflowsData);
+      setSystemHealth(healthData);
 
-      // Compare and update volunteers only if changed
-      if (JSON.stringify(volunteerData) !== JSON.stringify(activeVolunteers)) {
-        setActiveVolunteers(volunteerData);
-      }
-
-      // Compare and update workflows only if changed
-      if (JSON.stringify(workflowsData) !== JSON.stringify(runningWorkflows)) {
-        setRunningWorkflows(workflowsData);
-      }
-
-      // Compare and update health only if changed
-      if (JSON.stringify(healthData) !== JSON.stringify(systemHealth)) {
-        setSystemHealth(healthData);
-      }
-
-      // Compare and update charts data only if changed
       const [workflowsChartData, volunteersChartData] = chartsData;
-      if (JSON.stringify(workflowsChartData) !== JSON.stringify(workflowStatusData)) {
-        setWorkflowStatusData(workflowsChartData);
-      }
-      if (JSON.stringify(volunteersChartData) !== JSON.stringify(volunteerStatusData)) {
-        setVolunteerStatusData(volunteersChartData);
-      }
-
+      setWorkflowStatusData(workflowsChartData);
+      setVolunteerStatusData(volunteersChartData);
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      // Set fallback data only if current state is empty
-      if (!stats.managers) {
-        setStats({ managers: 2, volunteers: 5, workflows: 3, tasks: 10 });
-      }
-      if (!activeVolunteers.length) {
-        setActiveVolunteers([]);
-      }
-      if (!runningWorkflows.length) {
-        setRunningWorkflows([
-          { id: '1', name: 'Data Processing', status: 'RUNNING', owner: { username: 'admin' }, created_at: new Date().toISOString() },
-          { id: '2', name: 'Image Analysis', status: 'RUNNING', owner: { username: 'yves' }, created_at: new Date().toISOString() }
-        ]);
-      }
-      if (!systemHealth) {
-        setSystemHealth({
-          status: 'error',
-          details: {
-            database: 'disconnected',
-            active_volunteers: 0,
-            recent_errors: 1,
-            redis_connection: 'disconnected'
-          }
-        });
-      }
-      if (!workflowStatusData.length) {
-        setWorkflowStatusData({
-          CREATED: 2,
-          RUNNING: 3,
-          COMPLETED: 5,
-          FAILED: 1
-        });
-      }
-      if (!volunteerStatusData.length) {
-        setVolunteerStatusData({
-          available: 3,
-          busy: 2,
-          offline: 1
-        });
-      }
+      setLoading(false);
     }
   };
 
-  // Set up real-time updates
   useEffect(() => {
-    // Initial fetch
     fetchAllData();
-
-    // Set up interval for real-time updates every 2 seconds
     const interval = setInterval(fetchAllData, 2000);
-
-    // Cleanup interval on component unmount
     return () => clearInterval(interval);
   }, []);
-  return (
-    <Box sx={{ p: { xs: 2, md: 4 }, background: '#f5f6fa', minHeight: '100vh' }}>
-      {/* Welcome Section */}
-      <Paper elevation={3} sx={{ p: 4, mb: 4, borderRadius: 3, textAlign: 'center', background: 'linear-gradient(90deg, #1976d2 0%, #42a5f5 100%)', color: 'white' }}>
-        <Typography variant="h4" fontWeight={700} gutterBottom>
-          Welcome to Coordinator App
-        </Typography>
-        <Typography variant="subtitle1">
-          Manage distributed volunteers, workflows, and tasks with ease.
-        </Typography>
-      </Paper>
 
-      {/* Dashboard Content */}
-      {/* Quick Stats Section */}
-      <Grid container spacing={3} justifyContent="center" mb={4}>
+  return (
+    <Box sx={{ 
+      minHeight: '100vh',
+      background: `linear-gradient(135deg, ${COLORS.dark} 0%, ${COLORS.primary} 50%, ${COLORS.dark} 100%)`,
+      p: { xs: 2, md: 4 },
+      position: 'relative',
+      overflow: 'hidden',
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: '-50%',
+        right: '-10%',
+        width: '600px',
+        height: '600px',
+        borderRadius: '50%',
+        background: `radial-gradient(circle, ${COLORS.secondary}15 0%, transparent 70%)`,
+        animation: 'pulse 8s ease-in-out infinite',
+      },
+      '&::after': {
+        content: '""',
+        position: 'absolute',
+        bottom: '-30%',
+        left: '-5%',
+        width: '500px',
+        height: '500px',
+        borderRadius: '50%',
+        background: `radial-gradient(circle, ${COLORS.light}10 0%, transparent 70%)`,
+        animation: 'pulse 6s ease-in-out infinite 1s',
+      },
+      '@keyframes pulse': {
+        '0%, 100%': {
+          transform: 'scale(1)',
+          opacity: 0.5,
+        },
+        '50%': {
+          transform: 'scale(1.1)',
+          opacity: 0.8,
+        }
+      },
+      '@keyframes rotate': {
+        from: { transform: 'rotate(0deg)' },
+        to: { transform: 'rotate(360deg)' }
+      },
+      '@keyframes slideIn': {
+        from: { 
+          opacity: 0,
+          transform: 'translateY(20px)'
+        },
+        to: {
+          opacity: 1,
+          transform: 'translateY(0)'
+        }
+      }
+    }}>
+      {/* Header Section */}
+      <Box sx={{ 
+        position: 'relative',
+        zIndex: 1,
+        mb: 4,
+        textAlign: 'center',
+        animation: 'slideIn 0.8s ease-out'
+      }}>
+        <Box sx={{ 
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 2,
+          mb: 2,
+          background: `linear-gradient(90deg, ${COLORS.secondary}20 0%, transparent 100%)`,
+          borderRadius: '50px',
+          px: 4,
+          py: 2,
+          backdropFilter: 'blur(10px)',
+          border: `1px solid ${COLORS.secondary}30`,
+        }}>
+          <Box sx={{
+            width: 60,
+            height: 60,
+            borderRadius: '50%',
+            background: `linear-gradient(135deg, ${COLORS.secondary} 0%, ${COLORS.light} 100%)`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            animation: 'rotate 3s linear infinite',
+            boxShadow: `0 0 30px ${COLORS.secondary}50`,
+          }}>
+            <TrendingUpIcon sx={{ fontSize: 35, color: 'white' }} />
+          </Box>
+          <Box sx={{ textAlign: 'left' }}>
+            <Typography variant="h3" fontWeight={700} sx={{ 
+              color: 'white',
+              letterSpacing: '1px',
+              textShadow: `0 0 20px ${COLORS.light}40`
+            }}>
+              VolunSys-UY1
+            </Typography>
+            <Typography variant="body1" sx={{ color: COLORS.light, fontWeight: 300 }}>
+              La puissance collective au service du calcul scientifique
+            </Typography>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Stats Grid */}
+      <Grid container spacing={3} sx={{ mb: 4, position: 'relative', zIndex: 1 }}>
         {[
-          { label: 'Managers', value: stats.managers, icon: <DashboardIcon color="primary" /> },
-          { label: 'Volunteers', value: stats.volunteers, icon: <GroupIcon color="success" /> }, 
-          { label: 'Workflows', value: stats.workflows, icon: <AssignmentIcon color="info" /> },
-          { label: 'Tasks', value: stats.tasks, icon: <ListAltIcon color="warning" /> },
-        ].map((stat) => (
-          <Grid item xs={6} sm={3} key={stat.label}>
-            <Paper elevation={2} sx={{ p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', borderRadius: 2 }}>
-              <Avatar sx={{ bgcolor: 'white', color: 'primary.main', mb: 1, width: 48, height: 48 }}>
-                {stat.icon}
-              </Avatar>
-              <Typography variant="h5" fontWeight={600}>{stat.value}</Typography>
-              <Typography variant="body2" color="text.secondary">{stat.label}</Typography>
+          { label: 'Managers', value: stats.managers, icon: <DashboardIcon />, gradient: `linear-gradient(135deg, ${COLORS.primary} 0%, ${COLORS.secondary} 100%)` },
+          { label: 'Volunteers', value: stats.volunteers, icon: <GroupIcon />, gradient: `linear-gradient(135deg, ${COLORS.secondary} 0%, ${COLORS.light} 100%)` },
+          { label: 'Workflows', value: stats.workflows, icon: <AssignmentIcon />, gradient: `linear-gradient(135deg, ${COLORS.light} 0%, ${COLORS.secondary} 100%)` },
+          { label: 'Tasks', value: stats.tasks, icon: <ListAltIcon />, gradient: `linear-gradient(135deg, ${COLORS.dark} 0%, ${COLORS.primary} 100%)` },
+        ].map((stat, index) => (
+          <Grid item xs={12} sm={6} md={3} key={stat.label}>
+            <Paper 
+              elevation={0}
+              sx={{ 
+                p: 3,
+                borderRadius: '20px',
+                background: stat.gradient,
+                color: 'white',
+                position: 'relative',
+                overflow: 'hidden',
+                border: `1px solid ${COLORS.light}20`,
+                backdropFilter: 'blur(10px)',
+                transition: 'all 0.3s ease',
+                animation: `slideIn 0.6s ease-out ${index * 0.1}s both`,
+                '&:hover': {
+                  transform: 'translateY(-8px)',
+                  boxShadow: `0 15px 40px ${COLORS.secondary}40`,
+                },
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: '-50%',
+                  right: '-50%',
+                  width: '200%',
+                  height: '200%',
+                  background: `radial-gradient(circle, ${COLORS.light}15 0%, transparent 70%)`,
+                  animation: 'rotate 6s linear infinite',
+                }
+              }}
+            >
+              <Box sx={{ position: 'relative', zIndex: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Avatar sx={{ 
+                    bgcolor: 'rgba(255,255,255,0.2)', 
+                    width: 56, 
+                    height: 56,
+                    backdropFilter: 'blur(10px)',
+                  }}>
+                    {stat.icon}
+                  </Avatar>
+                  <Box sx={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: '50%',
+                    bgcolor: COLORS.light,
+                    boxShadow: `0 0 15px ${COLORS.light}`,
+                    animation: 'pulse 2s ease-in-out infinite',
+                  }} />
+                </Box>
+                <Typography variant="h3" fontWeight={700} sx={{ mb: 0.5 }}>
+                  {loading ? <CircularProgress size={24} sx={{ color: 'white' }} /> : stat.value}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9, fontWeight: 500, letterSpacing: '0.5px' }}>
+                  {stat.label}
+                </Typography>
+              </Box>
             </Paper>
           </Grid>
         ))}
       </Grid>
-      
-      {/* Running Workflows Widget */}
-      <Paper elevation={1} sx={{ p: 3, mb: 4, borderRadius: 2, background: '#fffbea' }}>
-        <Stack direction="row" alignItems="center" spacing={1} mb={2}>
-          <PlayArrowIcon color="warning" />
-          <Typography variant="h6" fontWeight={600}>Running Workflows</Typography>
-        </Stack>
-        {runningWorkflows.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">No workflows currently running.</Typography>
-        ) : (
-          <Stack spacing={1}>
-            {runningWorkflows.map((wf, idx) => (
-              <Typography key={idx} variant="body2">
-                {wf.name || wf.title || wf.id || JSON.stringify(wf)}
-              </Typography>
-            ))}
-          </Stack>
-        )}
-      </Paper>
 
-      {/* Quick Actions Section */}
-      <Paper elevation={1} sx={{ p: 3, mb: 4, borderRadius: 2 }}>
-        <Typography variant="h6" fontWeight={600} mb={2}>
-          Quick Actions
-        </Typography>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-          <Button variant="contained" component={Link} to="/manager" color="primary">View Managers</Button>
-          <Button variant="contained" component={Link} to="/volunteer" color="success">View Volunteers</Button>
-          <Button variant="contained" component={Link} to="/workflows" color="info">View Workflows</Button>
-          {/* <Button variant="contained" component={Link} to="/logs" color="secondary">Communication Logs</Button> */}
-        </Stack>
-      </Paper>
-
-      {/* System Health */}
-      <Paper elevation={1} sx={{ p: 3, mb: 4, borderRadius: 2 }}>
-        <Stack direction="row" alignItems="center" spacing={1} mb={2}>
-          <HealthAndSafetyIcon color={loadingHealth ? 'disabled' : systemHealth?.status === 'ok' ? 'success' : 'warning'} />
-          <Typography variant="h6" fontWeight={600}>System Health</Typography>
-        </Stack>
-        {loadingHealth ? <CircularProgress size={20} /> : errorHealth ? (
-          <Typography variant="body2" color="error">{errorHealth}</Typography>
-        ) : (
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper elevation={0} sx={{ p: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
-                <Typography variant="body2" color="text.secondary">Database</Typography>
-                <Typography variant="body1" fontWeight={500} color={systemHealth?.details?.database === 'connected' ? 'success.main' : 'error.main'}>
-                  {systemHealth?.details?.database || 'Unknown'}
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper elevation={0} sx={{ p: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
-                <Typography variant="body2" color="text.secondary">Active Volunteers</Typography>
-                <Typography variant="body1" fontWeight={500}>
-                  {systemHealth?.details?.active_volunteers || 0}
-                </Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper elevation={0} sx={{ p: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
-                <Typography variant="body2" color="text.secondary">Recent Errors</Typography>
-                <Typography variant="body1" fontWeight={500} color={systemHealth?.details?.recent_errors > 0 ? 'error.main' : 'text.primary'}>
-                  {systemHealth?.details?.recent_errors || 0}
-                </Typography>
-          <Typography color="textSecondary">Workflows</Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper elevation={0} sx={{ p: 2, bgcolor: '#f5f5f5', borderRadius: 2 }}>
-                <Typography variant="body2" color="text.secondary">Overall Status</Typography>
-                <Typography variant="body1" fontWeight={500} color={systemHealth?.status === 'ok' ? 'success.main' : 'warning.main'}>
-                  {systemHealth?.status || 'Unknown'}
-                </Typography>
-              </Paper>
-            </Grid>
-          </Grid>
-        )}
-      </Paper>
-
-      {/* Analytics Section */}
-      <Grid container spacing={3} mb={4}>
-        {/* Workflow Status Chart */}
+      <Grid container spacing={3} sx={{ position: 'relative', zIndex: 1 }}>
+        {/* Running Workflows */}
         <Grid item xs={12} md={6}>
-          <Paper elevation={1} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
-            <Typography variant="h6" fontWeight={600} mb={2}>Workflow Status Distribution</Typography>
-            {loadingCharts ? <CircularProgress size={20} /> : workflowStatusData.length === 0 ? (
-              <Typography variant="body2" color="text.secondary">No workflow data available.</Typography>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3,
+              borderRadius: '20px',
+              background: `linear-gradient(135deg, rgba(0,32,96,0.9) 0%, rgba(0,20,64,0.9) 100%)`,
+              backdropFilter: 'blur(20px)',
+              border: `1px solid ${COLORS.secondary}30`,
+              minHeight: 300,
+              position: 'relative',
+              overflow: 'hidden',
+              animation: 'slideIn 0.8s ease-out 0.4s both',
+            }}
+          >
+            <Box sx={{
+              position: 'absolute',
+              top: -50,
+              right: -50,
+              width: 200,
+              height: 200,
+              borderRadius: '50%',
+              background: `radial-gradient(circle, ${COLORS.secondary}10 0%, transparent 70%)`,
+              animation: 'pulse 4s ease-in-out infinite',
+            }} />
+            <Stack direction="row" alignItems="center" spacing={2} mb={3} sx={{ position: 'relative', zIndex: 1 }}>
+              <Box sx={{
+                width: 48,
+                height: 48,
+                borderRadius: '12px',
+                background: `linear-gradient(135deg, ${COLORS.secondary} 0%, ${COLORS.light} 100%)`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: `0 0 20px ${COLORS.secondary}50`,
+              }}>
+                <PlayArrowIcon sx={{ color: 'white' }} />
+              </Box>
+              <Typography variant="h6" fontWeight={600} sx={{ color: 'white' }}>
+                Running Workflows
+              </Typography>
+              {runningWorkflows.length > 0 && (
+                <Chip 
+                  label={runningWorkflows.length}
+                  size="small"
+                  sx={{ 
+                    bgcolor: COLORS.light,
+                    color: COLORS.dark,
+                    fontWeight: 700,
+                    animation: 'pulse 2s ease-in-out infinite',
+                  }}
+                />
+              )}
+            </Stack>
+            <Box sx={{ position: 'relative', zIndex: 1 }}>
+              {loading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                  <CircularProgress sx={{ color: COLORS.light }} />
+                </Box>
+              ) : runningWorkflows.length === 0 ? (
+                <Box sx={{ 
+                  textAlign: 'center', 
+                  py: 4,
+                  color: COLORS.light,
+                  opacity: 0.7,
+                }}>
+                  <Typography variant="body2">No workflows currently running</Typography>
+                </Box>
+              ) : (
+                <Stack spacing={2}>
+                  {runningWorkflows.map((wf, idx) => (
+                    <Box 
+                      key={idx}
+                      sx={{ 
+                        p: 2,
+                        borderRadius: '12px',
+                        background: `linear-gradient(90deg, ${COLORS.secondary}15 0%, transparent 100%)`,
+                        border: `1px solid ${COLORS.secondary}30`,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          background: `linear-gradient(90deg, ${COLORS.secondary}25 0%, transparent 100%)`,
+                          transform: 'translateX(5px)',
+                        }
+                      }}
+                    >
+                      <Typography variant="body1" sx={{ color: 'white', fontWeight: 500 }}>
+                        {wf.name || wf.title || `Workflow ${idx + 1}`}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: COLORS.light, opacity: 0.8 }}>
+                        Owner: {wf.owner?.username || 'Unknown'}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Stack>
+              )}
+            </Box>
+          </Paper>
+        </Grid>
+
+        {/* System Health */}
+        <Grid item xs={12} md={6}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3,
+              borderRadius: '20px',
+              background: `linear-gradient(135deg, rgba(0,32,96,0.9) 0%, rgba(0,20,64,0.9) 100%)`,
+              backdropFilter: 'blur(20px)',
+              border: `1px solid ${COLORS.light}30`,
+              minHeight: 300,
+              position: 'relative',
+              overflow: 'hidden',
+              animation: 'slideIn 0.8s ease-out 0.5s both',
+            }}
+          >
+            <Box sx={{
+              position: 'absolute',
+              bottom: -50,
+              left: -50,
+              width: 200,
+              height: 200,
+              borderRadius: '50%',
+              background: `radial-gradient(circle, ${COLORS.light}10 0%, transparent 70%)`,
+              animation: 'pulse 4s ease-in-out infinite 1s',
+            }} />
+            <Stack direction="row" alignItems="center" spacing={2} mb={3} sx={{ position: 'relative', zIndex: 1 }}>
+              <Box sx={{
+                width: 48,
+                height: 48,
+                borderRadius: '12px',
+                background: `linear-gradient(135deg, ${COLORS.light} 0%, ${COLORS.secondary} 100%)`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: `0 0 20px ${COLORS.light}50`,
+              }}>
+                <HealthAndSafetyIcon sx={{ color: 'white' }} />
+              </Box>
+              <Typography variant="h6" fontWeight={600} sx={{ color: 'white' }}>
+                System Health
+              </Typography>
+            </Stack>
+            <Box sx={{ position: 'relative', zIndex: 1 }}>
+              {loading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                  <CircularProgress sx={{ color: COLORS.light }} />
+                </Box>
+              ) : (
+                <Grid container spacing={2}>
+                  {[
+                    { label: 'Database', value: systemHealth?.details?.database || 'Unknown' },
+                    { label: 'Active Volunteers', value: systemHealth?.details?.active_volunteers || 0 },
+                    { label: 'Recent Errors', value: systemHealth?.details?.recent_errors || 0 },
+                    { label: 'Status', value: systemHealth?.status || 'Unknown' },
+                  ].map((item, idx) => (
+                    <Grid item xs={6} key={idx}>
+                      <Box sx={{ 
+                        p: 2,
+                        borderRadius: '12px',
+                        background: `linear-gradient(135deg, ${COLORS.primary}40 0%, ${COLORS.dark}40 100%)`,
+                        border: `1px solid ${COLORS.secondary}20`,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          transform: 'scale(1.05)',
+                          boxShadow: `0 5px 20px ${COLORS.secondary}30`,
+                        }
+                      }}>
+                        <Typography variant="caption" sx={{ color: COLORS.light, opacity: 0.8 }}>
+                          {item.label}
+                        </Typography>
+                        <Typography variant="h6" fontWeight={600} sx={{ color: 'white', mt: 0.5 }}>
+                          {item.value}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  ))}
+                </Grid>
+              )}
+            </Box>
+          </Paper>
+        </Grid>
+
+        {/* Charts */}
+        <Grid item xs={12} md={6}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3,
+              borderRadius: '20px',
+              background: `linear-gradient(135deg, rgba(0,32,96,0.9) 0%, rgba(0,20,64,0.9) 100%)`,
+              backdropFilter: 'blur(20px)',
+              border: `1px solid ${COLORS.secondary}30`,
+              minHeight: 400,
+              animation: 'slideIn 0.8s ease-out 0.6s both',
+            }}
+          >
+            <Typography variant="h6" fontWeight={600} sx={{ color: 'white', mb: 3 }}>
+              Workflow Status
+            </Typography>
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                <CircularProgress sx={{ color: COLORS.light }} />
+              </Box>
+            ) : workflowStatusData.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 8, color: COLORS.light, opacity: 0.7 }}>
+                <Typography variant="body2">No data available</Typography>
+              </Box>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
@@ -326,54 +490,116 @@ const Home = () => {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    outerRadius={80}
+                    outerRadius={90}
                     fill="#8884d8"
                     dataKey="value"
                     nameKey="name"
                     label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                   >
                     {workflowStatusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name] || `#${Math.floor(Math.random()*16777215).toString(16)}`} />
+                      <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name] || COLORS.secondary} />
                     ))}
                   </Pie>
-                  <Legend />
-                  <RechartsTooltip />
+                  <Legend wrapperStyle={{ color: 'white' }} />
+                  <RechartsTooltip contentStyle={{ background: COLORS.dark, border: `1px solid ${COLORS.secondary}` }} />
                 </PieChart>
               </ResponsiveContainer>
             )}
           </Paper>
         </Grid>
 
-        {/* Volunteer Status Chart */}
         <Grid item xs={12} md={6}>
-          <Paper elevation={1} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
-            <Typography variant="h6" fontWeight={600} mb={2}>Volunteer Status Distribution</Typography>
-            {loadingCharts ? <CircularProgress size={20} /> : volunteerStatusData.length === 0 ? (
-              <Typography variant="body2" color="text.secondary">No volunteer data available.</Typography>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3,
+              borderRadius: '20px',
+              background: `linear-gradient(135deg, rgba(0,32,96,0.9) 0%, rgba(0,20,64,0.9) 100%)`,
+              backdropFilter: 'blur(20px)',
+              border: `1px solid ${COLORS.light}30`,
+              minHeight: 400,
+              animation: 'slideIn 0.8s ease-out 0.7s both',
+            }}
+          >
+            <Typography variant="h6" fontWeight={600} sx={{ color: 'white', mb: 3 }}>
+              Volunteer Status
+            </Typography>
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                <CircularProgress sx={{ color: COLORS.light }} />
+              </Box>
+            ) : volunteerStatusData.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 8, color: COLORS.light, opacity: 0.7 }}>
+                <Typography variant="body2">No data available</Typography>
+              </Box>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={volunteerStatusData}
-                  margin={{
-                    top: 5,
-                    right: 30,
-                    left: 20,
-                    bottom: 5,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <RechartsTooltip />
-                  <Legend />
-                  <Bar dataKey="value" name="Count" fill="#8884d8">
+                <BarChart data={volunteerStatusData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={`${COLORS.secondary}30`} />
+                  <XAxis dataKey="name" stroke="white" />
+                  <YAxis stroke="white" />
+                  <RechartsTooltip contentStyle={{ background: COLORS.dark, border: `1px solid ${COLORS.light}` }} />
+                  <Legend wrapperStyle={{ color: 'white' }} />
+                  <Bar dataKey="value" name="Count" fill={COLORS.secondary}>
                     {volunteerStatusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name] || `#${Math.floor(Math.random()*16777215).toString(16)}`} />
+                      <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name] || COLORS.light} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             )}
+          </Paper>
+        </Grid>
+
+        {/* Quick Actions */}
+        <Grid item xs={12}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3,
+              borderRadius: '20px',
+              background: `linear-gradient(135deg, rgba(0,32,96,0.9) 0%, rgba(0,20,64,0.9) 100%)`,
+              backdropFilter: 'blur(20px)',
+              border: `1px solid ${COLORS.secondary}30`,
+              animation: 'slideIn 0.8s ease-out 0.8s both',
+            }}
+          >
+            <Typography variant="h6" fontWeight={600} sx={{ color: 'white', mb: 3 }}>
+              Quick Actions
+            </Typography>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              {[
+                { label: 'View Managers', path: '/manager', color: COLORS.primary },
+                { label: 'View Volunteers', path: '/volunteer', color: COLORS.secondary },
+                { label: 'View Workflows', path: '/workflows', color: COLORS.light },
+              ].map((action, idx) => (
+                <Button
+                  key={idx}
+                  component={Link}
+                  to={action.path}
+                  variant="contained"
+                  sx={{
+                    flex: 1,
+                    py: 1.5,
+                    borderRadius: '12px',
+                    background: `linear-gradient(135deg, ${action.color} 0%, ${COLORS.dark} 100%)`,
+                    border: `1px solid ${action.color}50`,
+                    color: 'white',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    fontSize: '1rem',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      background: `linear-gradient(135deg, ${COLORS.light} 0%, ${action.color} 100%)`,
+                      transform: 'translateY(-3px)',
+                      boxShadow: `0 10px 30px ${action.color}50`,
+                    }
+                  }}
+                >
+                  {action.label}
+                </Button>
+              ))}
+            </Stack>
           </Paper>
         </Grid>
       </Grid>

@@ -175,6 +175,8 @@ source coordinator-env/bin/activate
 
 # Lancer avec Daphne (ASGI pour WebSockets)
 daphne coordinator_project.asgi:application -p 8001 -b 0.0.0.0
+# lancer le volontaire
+daphne backend.asgi:application -p 8003 -b 0.0.0.0
 ```
 
 ### 🖥️ **Frontend**

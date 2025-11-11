@@ -23,7 +23,7 @@ const Volunteer = () =>{
     ]);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [selectedVolunteer, setSelectedVolunteer] = useState(null);
-    const [deleteId, setDeleteId] = useState(null);
+    const [setDeleteId] = useState(null);
 
     const fetchData = () => {
       AxiosInstance.get(`api/volunteers/`).then((res) => {
