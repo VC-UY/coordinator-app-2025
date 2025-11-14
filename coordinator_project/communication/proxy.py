@@ -22,6 +22,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger('RedisProxy')
 logger.setLevel(logging.INFO)
 
+# Import du proxy de fichiers
+from .file_proxy import get_file_proxy_instance
+
 class RESPParser:
     """Parser RESP robuste pour gérer tous les types de messages Redis"""
     
@@ -477,6 +480,9 @@ class AsyncRedisProxy:
         # Gestionnaire pub/sub
         self.pubsub_manager = None
         
+        # Proxy de fichiers
+        self.file_proxy = None
+        
         # Stockage des clients optimisé
         self.clients = {}  # client_id -> ClientData
         
@@ -538,7 +544,8 @@ class AsyncRedisProxy:
         
         # Transformateurs de messages
         self.message_transformers = [
-            # self.add_metadata,
+            self.add_metadata,
+            self.route_file_server,  # ← Nouveau transformateur pour router les fichiers
             # self.filter_sensitive_data
         ]
     
@@ -547,6 +554,11 @@ class AsyncRedisProxy:
         # Initialiser le gestionnaire pub/sub avec les bons paramètres
         self.pubsub_manager = AsyncPubSubManager(self.redis_host, self.redis_port)
         await self.pubsub_manager.start()
+        
+        # Initialiser et démarrer le proxy de fichiers
+        self.file_proxy = get_file_proxy_instance(host='0.0.0.0', port=8000)
+        await self.file_proxy.start()
+        logger.info("✅ Proxy de fichiers initialisé")
         
         # CORRECTION: Écouter automatiquement tous les canaux ouverts sur Redis
         await self._setup_open_channels_listeners()
@@ -579,6 +591,10 @@ class AsyncRedisProxy:
         # Créer des listeners automatiques pour tous les canaux ouverts
         open_channels_list = list(self.open_channels.keys())
         
+        # Ajouter le canal task/terminate pour nettoyer les tâches
+        if 'task/terminate' not in open_channels_list:
+            open_channels_list.append('task/terminate')
+        
         for channel in open_channels_list:
             # Ignorer les patterns (avec #)
             if '#' not in channel:
@@ -589,11 +605,52 @@ class AsyncRedisProxy:
                     )
                     logger.info(f"Écoute automatique configurée pour canal ouvert: {channel}")
         
+        # S'abonner au canal task/terminate pour nettoyer les tâches
+        asyncio.create_task(self._listen_task_terminate())
+        
         logger.info(f"Écoute automatique configurée pour {len([c for c in open_channels_list if '#' not in c])} canaux ouverts")
+    
+    async def _listen_task_terminate(self):
+        """Écoute le canal task/terminate pour nettoyer les tâches terminées"""
+        try:
+            redis_client = redis.Redis(
+                host=self.redis_host,
+                port=self.redis_port,
+                decode_responses=True
+            )
+            pubsub = redis_client.pubsub()
+            await asyncio.get_event_loop().run_in_executor(None, pubsub.subscribe, 'task/terminate')
+            
+            logger.info("🎧 Écoute du canal task/terminate pour le nettoyage des tâches")
+            
+            while self.running:
+                try:
+                    message = await asyncio.get_event_loop().run_in_executor(
+                        None, pubsub.get_message, 0.5
+                    )
+                    
+                    if message and message['type'] == 'message':
+                        data = json.loads(message['data'])
+                        task_id = data.get('task_id')
+                        
+                        if task_id and self.file_proxy:
+                            self.file_proxy.unregister_task(task_id)
+                            logger.info(f"🧹 Tâche {task_id} nettoyée du proxy de fichiers")
+                    
+                    await asyncio.sleep(0.1)
+                except Exception as e:
+                    logger.error(f"Erreur dans l'écoute de task/terminate: {e}")
+                    await asyncio.sleep(1)
+        except Exception as e:
+            logger.error(f"Erreur lors de l'initialisation de l'écoute task/terminate: {e}")
     
     async def stop(self):
         """Arrête le proxy"""
         self.running = False
+        
+        if self.file_proxy:
+            await self.file_proxy.stop()
+            logger.info("✅ Proxy de fichiers arrêté")
         
         if self.pubsub_manager:
             await self.pubsub_manager.stop()
@@ -1085,7 +1142,7 @@ class AsyncRedisProxy:
         # Ajouter un timestamp
         message_copy['_timestamp'] = datetime.utcnow().isoformat()
         
-        # Ajouter l'adresse IP du client
+        # Ajouter l'adresse IP du client (IP réelle vue par le proxy)
         if client_id:
             message_copy['_client_ip'] = client_id.split(':')[0]
         
@@ -1093,6 +1150,91 @@ class AsyncRedisProxy:
         logger.debug(f"Message après ajout de métadonnées: {message_copy}")
         
         return message_copy
+    
+    def route_file_server(self, client_id, channel, message, user_id=None, role=None):
+        """
+        Transformateur qui intercepte les messages de résultat de tâche
+        et remplace les informations du serveur de fichiers du volontaire
+        par celles du proxy de fichiers du coordinator.
+        """
+        if not isinstance(message, dict):
+            return message
+        
+        # Intercepter uniquement les messages sur le canal task/status avec status=completed
+        if channel != 'task/status':
+            return message
+        
+        status = message.get('status')
+        if status != 'completed':
+            return message
+        
+        # Vérifier si le message contient des informations de serveur de fichiers
+        if 'file_server' not in message:
+            logger.warning(f"Message de tâche complétée sans file_server: {message}")
+            return message
+        
+        file_server_info = message['file_server']
+        task_id = message.get('task_id')
+        volunteer_id = message.get('volunteer_id')
+        
+        if not task_id:
+            logger.error(f"Message de tâche complétée sans task_id")
+            return message
+        
+        # Extraire l'IP et le port du volontaire
+        volunteer_ip = client_id.split(':')[0]  # IP réelle du volontaire
+        volunteer_port = file_server_info.get('port')
+        
+        if not volunteer_port:
+            logger.error(f"Pas de port de serveur de fichiers pour la tâche {task_id}")
+            return message
+        
+        logger.info(f"🔄 Routage de fichiers pour tâche {task_id}: {volunteer_ip}:{volunteer_port}")
+        
+        # Enregistrer la tâche dans le proxy de fichiers
+        if self.file_proxy:
+            self.file_proxy.register_task(
+                task_id=task_id,
+                volunteer_ip=volunteer_ip,
+                volunteer_port=volunteer_port,
+                volunteer_id=volunteer_id
+            )
+        
+        # Remplacer les informations du serveur de fichiers
+        # par celles du proxy du coordinator
+        coordinator_host = self.get_coordinator_public_address()
+        coordinator_file_port = 8500  # Port du proxy de fichiers
+        
+        message_copy = message.copy()
+        message_copy['file_server'] = {
+            'host': coordinator_host,
+            'port': coordinator_file_port,
+            'path': f'/files/{task_id}/',
+            'output_files': file_server_info.get('output_files', []),
+            # Garder les infos originales pour debug
+            '_original_host': file_server_info.get('host'),
+            '_original_port': volunteer_port,
+            '_routed_by': 'coordinator_file_proxy'
+        }
+        
+        logger.info(f"✅ Serveur de fichiers routé: {coordinator_host}:{coordinator_file_port}/files/{task_id}/")
+        
+        return message_copy
+    
+    def get_coordinator_public_address(self):
+        """
+        Retourne l'adresse publique du coordinator.
+        Dans un environnement de production, cela devrait être configuré.
+        """
+        # TODO: Configurer l'adresse publique du coordinator
+        # Pour le moment, utiliser l'IP de la machine
+        try:
+            import socket
+            hostname = socket.gethostname()
+            local_ip = socket.gethostbyname(hostname)
+            return local_ip
+        except:
+            return 'localhost'
     
     def filter_sensitive_data(self, client_id, channel, message, user_id=None, role=None):
         """Filtre les données sensibles des messages"""
