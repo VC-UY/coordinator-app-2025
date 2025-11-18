@@ -241,3 +241,14 @@ if not is_mongo_connected():
         print(f"Erreur de connexion à MongoDB: {e}")
 else:
     print("Une connexion à MongoDB est déjà active.")
+
+
+
+
+import logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger('redis_communication')
+logger.setLevel(logging.DEBUG)
+# Suppress MongoDB debug logs
+logging.getLogger('pymongo').setLevel(logging.WARNING)
+logging.getLogger('mongoengine').setLevel(logging.WARNING)

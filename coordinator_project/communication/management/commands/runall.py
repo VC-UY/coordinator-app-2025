@@ -21,8 +21,8 @@ class Command(BaseCommand):
         parser.add_argument(
             '--django-port',
             type=int,
-            default=8080,
-            help='Port pour le serveur Django (défaut: 8080)'
+            default=8000,
+            help='Port pour le serveur Django (défaut: 8000)'
         )
         parser.add_argument(
             '--redis-host',
@@ -82,8 +82,8 @@ class Command(BaseCommand):
         self.stdout.write(f'   • Logs: {proxy_log}')
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS(f'📁 Proxy de fichiers:'))
-        self.stdout.write(f'   • Port: 8000')
-        self.stdout.write(f'   • URL: http://0.0.0.0:8000/files/')
+        self.stdout.write(f'   • Port: 8410')
+        self.stdout.write(f'   • URL: http://0.0.0.0:8410/files/')
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS('='*60))
         self.stdout.write('')
@@ -120,7 +120,8 @@ class Command(BaseCommand):
         
         # Attendre un peu pour s'assurer que le proxy démarre
         import time
-        time.sleep(2)
+        self.stdout.write('⏳ Attente de 10 secondes pour le démarrage du proxy...')
+        time.sleep(10)
         
         # Vérifier si le proxy est toujours en cours d'exécution
         if proxy_process.poll() is not None:
@@ -136,7 +137,8 @@ class Command(BaseCommand):
             sys.executable,
             'manage.py',
             'runserver',
-            f'0.0.0.0:{django_port}'
+            f'0.0.0.0:{django_port}',
+            '--noreload'
         ]
         
         django_log_file = open(django_log, 'w')
@@ -181,12 +183,14 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.ERROR(
                         f'❌ Le serveur Django s\'est arrêté (code: {django_status})'
                     ))
+                    proxy_process.terminate()
                     break
                 
                 if proxy_status is not None:
                     self.stdout.write(self.style.ERROR(
                         f'❌ Le proxy Redis s\'est arrêté (code: {proxy_status})'
                     ))
+                    django_process.terminate()
                     break
                 
                 # Attendre un peu avant la prochaine vérification

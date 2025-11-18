@@ -18,12 +18,12 @@ class FileProxyServer:
     Serveur proxy HTTP qui route les requêtes de fichiers.
     
     Architecture:
-    - Manager demande: GET http://coordinator:8500/files/task_123/result.txt
+    - Manager demande: GET http://coordinator:8410/files/task_123/result.txt
     - Coordinator contacte: http://volunteer_ip:volunteer_port/files/result.txt
     - Coordinator retourne le fichier au Manager
     """
     
-    def __init__(self, host='0.0.0.0', port=8500):
+    def __init__(self, host='0.0.0.0', port=8410):
         self.host = host
         self.port = port
         self.app = None
@@ -264,7 +264,7 @@ class FileProxyServer:
 # Instance singleton
 _file_proxy_instance: Optional[FileProxyServer] = None
 
-def get_file_proxy_instance(host='0.0.0.0', port=8000) -> FileProxyServer:
+def get_file_proxy_instance(host='0.0.0.0', port=8410) -> FileProxyServer:
     """Récupère l'instance singleton du proxy de fichiers"""
     global _file_proxy_instance
     if _file_proxy_instance is None:
@@ -272,7 +272,7 @@ def get_file_proxy_instance(host='0.0.0.0', port=8000) -> FileProxyServer:
     return _file_proxy_instance
 
 
-async def start_file_proxy_server(host='0.0.0.0', port=8000):
+async def start_file_proxy_server(host='0.0.0.0', port=8410) -> FileProxyServer:
     """Démarre le serveur proxy de fichiers"""
     proxy = get_file_proxy_instance(host, port)
     await proxy.start()

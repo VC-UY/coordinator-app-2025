@@ -4,6 +4,7 @@ __pycache__
 .coordinator
 exp-env
 coordinator-env
+pending_requests
 
 *.log
 *.LOG

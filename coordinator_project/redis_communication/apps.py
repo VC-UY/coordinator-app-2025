@@ -9,6 +9,7 @@ import time
 import os
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 class RedisCommunicationConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
