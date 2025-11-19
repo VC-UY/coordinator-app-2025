@@ -547,8 +547,9 @@ class AsyncRedisProxy:
         # Transformateurs de messages
         self.message_transformers = [
             self.add_metadata,
-            self.route_file_server,  # ← Nouveau transformateur pour router les fichiers
-            self.handle_token_refresh,  # ← Nouveau transformateur pour gérer le rafraîchissement des tokens
+            self.route_file_server,  # ← Transformateur pour router les fichiers de sortie (résultats)
+            self.route_input_files,  # ← Transformateur pour router les fichiers d'entrée (assignation)
+            self.handle_token_refresh,  # ← Transformateur pour gérer le rafraîchissement des tokens
             # self.filter_sensitive_data
         ]
     
@@ -1221,6 +1222,102 @@ class AsyncRedisProxy:
         }
         
         logger.info(f"✅ Serveur de fichiers routé: {coordinator_host}:{coordinator_file_port}/files/{task_id}/")
+        
+        return message_copy
+    
+    def route_input_files(self, client_id, channel, message, user_id=None, role=None):
+        """
+        Transformateur qui intercepte les messages d'assignation de tâches
+        et remplace les informations du serveur de fichiers du manager
+        par celles du proxy de fichiers du coordinator.
+        """
+        if not isinstance(message, dict):
+            return message
+        
+        # Intercepter uniquement les messages sur le canal task/assignment
+        if channel != 'task/assignment':
+            return message
+        
+        # Vérifier si le message contient des assignations
+        data = message.get('data', {})
+        assignments = data.get('assignments', {})
+        
+        if not assignments:
+            logger.warning(f"Message d'assignation sans assignations: {message}")
+            return message
+        
+        workflow_id = data.get('workflow_id')
+        if not workflow_id:
+            logger.warning(f"Message d'assignation sans workflow_id")
+            return message
+        
+        logger.info(f"🔄 Routage des fichiers d'entrée pour workflow {workflow_id}")
+        
+        # Créer une copie du message
+        message_copy = message.copy()
+        if 'data' not in message_copy:
+            message_copy['data'] = {}
+        message_copy['data'] = data.copy()
+        message_copy['data']['assignments'] = {}
+        
+        # Extraire l'IP et le port du manager depuis le client_id
+        manager_ip = client_id.split(':')[0]  # IP réelle du manager
+        
+        # Parcourir toutes les assignations
+        for volunteer_id, tasks in assignments.items():
+            routed_tasks = []
+            
+            for task in tasks:
+                task_copy = task.copy()
+                
+                # Vérifier si la tâche contient input_data avec file_server
+                input_data = task.get('input_data', {})
+                file_server = input_data.get('file_server', {})
+                
+                if file_server:
+                    # Extraire les informations du serveur de fichiers du manager
+                    manager_port = file_server.get('port')
+                    task_id = task.get('task_id')
+                    
+                    if manager_port and task_id:
+                        logger.info(f"  🔄 Routage pour tâche {task_id}: {manager_ip}:{manager_port}")
+                        
+                        # Enregistrer le mapping dans le proxy de fichiers
+                        # Format pour les fichiers d'entrée: input_<workflow_id>
+                        proxy_task_id = f"input_{workflow_id}"
+                        
+                        if self.file_proxy:
+                            self.file_proxy.register_task(
+                                task_id=proxy_task_id,
+                                volunteer_ip=manager_ip,
+                                volunteer_port=manager_port,
+                                volunteer_id=None  # Pas de volunteer_id pour les fichiers d'entrée
+                            )
+                        
+                        # Remplacer par les informations du proxy
+                        coordinator_host = self.get_coordinator_public_address()
+                        coordinator_file_port = 8410  # Port du proxy de fichiers
+                        
+                        task_copy['input_data'] = input_data.copy()
+                        task_copy['input_data']['file_server'] = {
+                            'host': coordinator_host,
+                            'port': coordinator_file_port,
+                            'base_url': f'http://{coordinator_host}:{coordinator_file_port}',
+                            'path': f'/files/{proxy_task_id}/',
+                            # Garder les infos originales pour debug
+                            '_original_host': file_server.get('host'),
+                            '_original_port': manager_port,
+                            '_original_base_url': file_server.get('base_url'),
+                            '_routed_by': 'coordinator_file_proxy'
+                        }
+                        
+                        logger.info(f"  ✅ Fichiers d'entrée routés: {coordinator_host}:{coordinator_file_port}/files/{proxy_task_id}/")
+                
+                routed_tasks.append(task_copy)
+            
+            message_copy['data']['assignments'][volunteer_id] = routed_tasks
+        
+        logger.info(f"✅ Routage des fichiers d'entrée terminé pour workflow {workflow_id}")
         
         return message_copy
     

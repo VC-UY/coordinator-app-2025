@@ -1,8 +1,10 @@
-# 🚀 Proxy de Fichiers via Coordinator
+# 🚀 Proxy de Fichiers via Coordinator (BIDIRECTIONNEL)
 
 ## Architecture de Routage
 
 Ce système résout le problème de communication entre Manager et Volontaire lorsqu'ils sont sur des sous-réseaux différents ou derrière des NAT.
+
+**⚡ NOUVEAU :** Support bidirectionnel complet - routage des fichiers d'entrée ET de sortie !
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -164,6 +166,53 @@ curl -X DELETE http://coordinator:8000/unregister_task/task_123
 ✅ **Multi-sous-réseaux**: Fonctionne entre sous-réseaux différents
 ✅ **Évolutif**: Supporte des milliers de tâches simultanées
 ✅ **Observable**: Statistiques et monitoring intégrés
+
+## 🆕 Routage Bidirectionnel (Nouvelle Fonctionnalité)
+
+### Fichiers d'Entrée (Manager → Volontaire)
+
+Le proxy intercepte maintenant aussi les messages `task/assignment` pour router les fichiers d'entrée :
+
+```
+Manager envoie task/assignment avec :
+{
+  "input_data": {
+    "file_server": {
+      "host": "192.168.2.50",  ← IP locale Manager
+      "port": 8080
+    }
+  }
+}
+
+↓ Proxy intercepte et transforme ↓
+
+Volontaire reçoit :
+{
+  "input_data": {
+    "file_server": {
+      "host": "coordinator.example.com",  ← IP publique Coordinator
+      "port": 8410,
+      "path": "/files/input_<workflow_id>/"
+    }
+  }
+}
+```
+
+**Mapping enregistré :**
+- `input_<workflow_id>` → `192.168.2.50:8080`
+
+**Téléchargement Volontaire :**
+```bash
+curl http://coordinator:8410/files/input_<workflow_id>/scenario.xml
+# → Routé vers http://192.168.2.50:8080/scenario.xml
+```
+
+### Résumé des Flux
+
+| Direction | Canal | Transformateur | Mapping |
+|-----------|-------|---------------|---------|
+| Manager → Volontaire | `task/assignment` | `route_input_files()` | `input_<workflow_id>` |
+| Volontaire → Manager | `task/status` | `route_file_server()` | `<task_id>` |
 
 ## Limitations
 
