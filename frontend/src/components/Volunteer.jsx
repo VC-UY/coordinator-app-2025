@@ -14,8 +14,6 @@ import {MaterialReactTable} from 'material-react-table';
 import AxiosInstance from './axios';
 
 const Volunteer = () =>{
-
-    // Initialize with fallback data
     const [myData, setMyData] = useState([
       { id: '1', name: 'Volunteer 1', status: 'available', last_update: new Date().toISOString(), last_activity: new Date().toISOString(), cpu_model: 'Intel i7', total_ram: 16000 },
       { id: '2', name: 'Volunteer 2', status: 'available', last_update: new Date().toISOString(), last_activity: new Date().toISOString(), cpu_model: 'AMD Ryzen 5', total_ram: 8000 },
@@ -23,14 +21,13 @@ const Volunteer = () =>{
     ]);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [selectedVolunteer, setSelectedVolunteer] = useState(null);
-    const [setDeleteId] = useState(null);
+    const [deleteId, setDeleteId] = useState(null);
 
     const fetchData = () => {
       AxiosInstance.get(`api/volunteers/`).then((res) => {
         setMyData(res.data);
       }).catch(error => {
         console.error("Error fetching volunteers:", error);
-        // Set fallback data on error
         setMyData([
           { id: '1', name: 'Volunteer 1', status: 'available', last_update: new Date().toISOString(), last_activity: new Date().toISOString(), cpu_model: 'Intel i7', total_ram: 16000 },
           { id: '2', name: 'Volunteer 2', status: 'available', last_update: new Date().toISOString(), last_activity: new Date().toISOString(), cpu_model: 'AMD Ryzen 5', total_ram: 8000 },
@@ -40,29 +37,109 @@ const Volunteer = () =>{
     };
 
     useEffect(() => {
-      // Initial fetch
       fetchData();
-
-      // Set up interval for real-time updates every 2 seconds
       const interval = setInterval(fetchData, 2000);
-
-      // Cleanup interval on component unmount
       return () => clearInterval(interval);
     }, []);
 
     const columns = useMemo(
         () => [
-            {accessorKey:'name', header: 'Name'},
-            {accessorKey:'status', header: 'Status'},
-            {accessorKey:'last_update', header: 'Last Update', Cell: ({ cell }) => {const date = new Date(cell.getValue());return date.toLocaleDateString();}},
-            {accessorKey:'last_activity', header: 'Last Activity', Cell: ({ cell }) => cell.getValue() ? new Date(cell.getValue()).toLocaleString() : '—'},
-            {accessorKey:'cpu_model', header: 'CPU'},
-            {accessorKey:'total_ram', header: 'RAM (MB)'},
+            {
+              accessorKey:'name', 
+              header: 'Name',
+              Cell: ({ cell }) => (
+                <Typography sx={{ color: '#FFFFFF', fontWeight: 500 }}>
+                  {cell.getValue()}
+                </Typography>
+              )
+            },
+            {
+              accessorKey:'status', 
+              header: 'Status',
+              Cell: ({ cell }) => {
+                const status = cell.getValue();
+                const statusColors = {
+                  'available': { bg: 'rgba(0, 255, 136, 0.15)', color: '#00FF88', border: 'rgba(0, 255, 136, 0.3)' },
+                  'busy': { bg: 'rgba(255, 165, 0, 0.15)', color: '#FFA500', border: 'rgba(255, 165, 0, 0.3)' },
+                  'offline': { bg: 'rgba(136, 136, 136, 0.15)', color: '#888888', border: 'rgba(136, 136, 136, 0.3)' }
+                };
+                const style = statusColors[status] || statusColors['offline'];
+                return (
+                  <Chip 
+                    label={status}
+                    size="small"
+                    sx={{
+                      background: style.bg,
+                      color: style.color,
+                      border: `1px solid ${style.border}`,
+                      fontWeight: 600,
+                      letterSpacing: '0.3px'
+                    }}
+                  />
+                );
+              }
+            },
+            {
+              accessorKey:'last_update', 
+              header: 'Last Update', 
+              Cell: ({ cell }) => {
+                const date = new Date(cell.getValue());
+                return (
+                  <Typography sx={{ color: '#00B0F0', fontSize: '0.9rem' }}>
+                    {date.toLocaleDateString()}
+                  </Typography>
+                );
+              }
+            },
+            {
+              accessorKey:'last_activity', 
+              header: 'Last Activity', 
+              Cell: ({ cell }) => (
+                <Typography sx={{ color: '#00B0F0', fontSize: '0.9rem' }}>
+                  {cell.getValue() ? new Date(cell.getValue()).toLocaleString() : '—'}
+                </Typography>
+              )
+            },
+            {
+              accessorKey:'cpu_model', 
+              header: 'CPU',
+              Cell: ({ cell }) => (
+                <Typography sx={{ color: '#FFFFFF', fontSize: '0.9rem' }}>
+                  {cell.getValue()}
+                </Typography>
+              )
+            },
+            {
+              accessorKey:'total_ram', 
+              header: 'RAM (MB)',
+              Cell: ({ cell }) => (
+                <Typography sx={{ color: '#00D4FF', fontWeight: 600 }}>
+                  {cell.getValue()}
+                </Typography>
+              )
+            },
             {
                 header: 'Actions',
                 Cell: ({ row }) => (
                     <Stack direction="row" spacing={1}>
-                        <Tooltip title="Delete"><IconButton  onClick={e => {e.stopPropagation(); handleDelete(row.original.id);}}><DeleteIcon color="error" fontSize="small" /></IconButton></Tooltip>
+                        <Tooltip title="Delete">
+                          <IconButton  
+                            onClick={e => {e.stopPropagation(); handleDelete(row.original.id);}}
+                            sx={{
+                              color: '#FF4444',
+                              background: 'rgba(220, 38, 38, 0.1)',
+                              border: '1px solid rgba(220, 38, 38, 0.3)',
+                              transition: 'all 0.3s ease',
+                              '&:hover': {
+                                background: 'rgba(220, 38, 38, 0.2)',
+                                transform: 'translateY(-2px)',
+                                boxShadow: '0 4px 12px rgba(220, 38, 38, 0.3)'
+                              }
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
                     </Stack>
                 ),
                 enableColumnActions: false,
@@ -84,7 +161,7 @@ const Volunteer = () =>{
     const handleDelete = (id) => {
         setDeleteId(id);
         if(window.confirm('Are you sure you want to delete this volunteer?')){
-            AxiosInstance.delete(`api/volunteers/${id}/`).then(() => GetData())
+            AxiosInstance.delete(`api/volunteers/${id}/`).then(() => fetchData())
                 .catch(error => {
                     console.error("Error deleting volunteer:", error);
                 });
@@ -92,76 +169,376 @@ const Volunteer = () =>{
     };
 
     return (
-        <Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', background: 'blue', color: 'white', borderRadius: 0.5, px: 2, py: 1, mb: 2 }}>
-                <CalendarViewMonthIcon sx={{ mr: 1 }} />
-                <Typography sx={{ fontWeight: 'bold' }} variant='subtitle2'>All Volunteers</Typography>
+        <Box sx={{ 
+          p: { xs: 2, md: 4 },
+          background: 'linear-gradient(180deg, #001440 0%, #002060 50%, #001440 100%)',
+          minHeight: '100vh'
+        }}>
+            {/* Header */}
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center',
+              background: 'linear-gradient(135deg, rgba(0, 32, 96, 0.9) 0%, rgba(0, 20, 64, 0.9) 100%)',
+              backdropFilter: 'blur(20px)',
+              color: 'white', 
+              borderRadius: 2, 
+              px: 3, 
+              py: 2, 
+              mb: 3,
+              border: '2px solid rgba(0, 180, 240, 0.3)',
+              boxShadow: '0 8px 32px rgba(0, 32, 96, 0.5)'
+            }}>
+                <CalendarViewMonthIcon sx={{ mr: 2, color: '#00D4FF' }} />
+                <Typography sx={{ 
+                  fontWeight: 700,
+                  letterSpacing: '0.5px',
+                  background: 'linear-gradient(135deg, #FFFFFF 0%, #00D4FF 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent'
+                }} variant='h5'>
+                  All Volunteers
+                </Typography>
             </Box>
-            <MaterialReactTable
-                columns={columns}
-                data={myData}
-                muiTableBodyRowProps={({ row }) => ({
-                    onClick: () => handleRowClick(row),
-                    style: { cursor: 'pointer' },
-                })}
-            />
+
+            {/* Table */}
+            <Box sx={{
+              background: 'linear-gradient(135deg, rgba(0, 32, 96, 0.6) 0%, rgba(0, 20, 64, 0.6) 100%)',
+              backdropFilter: 'blur(20px)',
+              borderRadius: 3,
+              border: '2px solid rgba(0, 180, 240, 0.3)',
+              boxShadow: '0 8px 32px rgba(0, 32, 96, 0.5)',
+              overflow: 'hidden'
+            }}>
+              <MaterialReactTable
+                  columns={columns}
+                  data={myData}
+                  muiTableBodyRowProps={({ row }) => ({
+                      onClick: () => handleRowClick(row),
+                      style: { cursor: 'pointer' },
+                      sx: {
+                        background: 'transparent',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          background: 'rgba(0, 180, 240, 0.05)',
+                          transform: 'translateX(5px)'
+                        }
+                      }
+                  })}
+                  muiTableProps={{
+                    sx: {
+                      background: 'transparent',
+                      '& .MuiTableCell-root': {
+                        borderBottom: '1px solid rgba(0, 180, 240, 0.1)'
+                      }
+                    }
+                  }}
+                  muiTableHeadCellProps={{
+                    sx: {
+                      background: 'linear-gradient(135deg, rgba(0, 180, 240, 0.15) 0%, rgba(0, 212, 255, 0.1) 100%)',
+                      color: '#00D4FF',
+                      fontWeight: 700,
+                      letterSpacing: '0.5px',
+                      textTransform: 'uppercase',
+                      fontSize: '0.85rem',
+                      borderBottom: '2px solid rgba(0, 180, 240, 0.3)',
+                      '& .MuiTableSortLabel-root': {
+                        color: '#00D4FF',
+                        '&:hover': { color: '#00D4FF' },
+                        '&.Mui-active': { color: '#00D4FF' }
+                      },
+                      '& .MuiTableSortLabel-icon': {
+                        color: '#00D4FF !important'
+                      }
+                    }
+                  }}
+                  muiTableBodyCellProps={{
+                    sx: {
+                      color: '#FFFFFF',
+                      borderBottom: '1px solid rgba(0, 180, 240, 0.1)'
+                    }
+                  }}
+                  muiTopToolbarProps={{
+                    sx: {
+                      background: 'transparent',
+                      color: '#FFFFFF',
+                      '& .MuiIconButton-root': { color: '#00D4FF' },
+                      '& .MuiInputBase-root': {
+                        color: '#FFFFFF',
+                        background: 'rgba(0, 0, 0, 0.3)',
+                        border: '2px solid rgba(0, 180, 240, 0.3)',
+                        borderRadius: '12px',
+                        '&:hover': { background: 'rgba(0, 0, 0, 0.4)' },
+                        '&.Mui-focused': {
+                          borderColor: '#00D4FF',
+                          boxShadow: '0 0 20px rgba(0, 212, 255, 0.3)'
+                        }
+                      },
+                      '& .MuiInputBase-input': {
+                        color: '#FFFFFF',
+                        '&::placeholder': { color: 'rgba(0, 180, 240, 0.6)' }
+                      },
+                      '& .MuiSvgIcon-root': { color: '#00B0F0' }
+                    }
+                  }}
+                  muiBottomToolbarProps={{
+                    sx: {
+                      background: 'transparent',
+                      color: '#FFFFFF',
+                      '& .MuiTablePagination-root': { color: '#FFFFFF' },
+                      '& .MuiIconButton-root': {
+                        color: '#00D4FF',
+                        '&.Mui-disabled': { color: 'rgba(0, 180, 240, 0.3)' }
+                      },
+                      '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                        color: '#00B0F0'
+                      },
+                      '& .MuiSelect-select': { color: '#FFFFFF' }
+                    }
+                  }}
+                  muiTablePaperProps={{
+                    sx: {
+                      background: 'transparent',
+                      boxShadow: 'none'
+                    }
+                  }}
+              />
+            </Box>
+
             {/* Drawer for details */}
-            <Drawer anchor="right" open={drawerOpen} onClose={handleDrawerClose}>
-                <Box sx={{ width: 400, p: 0, bgcolor: '#f7f9fa', height: '100%' }}>
+            <Drawer 
+              anchor="right" 
+              open={drawerOpen} 
+              onClose={handleDrawerClose}
+              PaperProps={{
+                sx: {
+                  background: 'linear-gradient(135deg, rgba(0, 32, 96, 0.98) 0%, rgba(0, 20, 64, 0.98) 100%)',
+                  backdropFilter: 'blur(20px)',
+                  borderLeft: '2px solid rgba(0, 180, 240, 0.3)',
+                  boxShadow: '-8px 0 32px rgba(0, 32, 96, 0.7)'
+                }
+              }}
+            >
+                <Box sx={{ width: 400, p: 0, height: '100%' }}>
                     {/* Drawer Header */}
-                    <Box sx={{display: 'flex', alignItems: 'center', justifyContent: 'space-between',bgcolor: '#1976d2', color: 'white', px: 3, py: 2}}>
+                    <Box sx={{
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'space-between',
+                      background: 'linear-gradient(135deg, rgba(0, 180, 240, 0.2) 0%, rgba(0, 212, 255, 0.1) 100%)',
+                      borderBottom: '2px solid rgba(0, 180, 240, 0.3)',
+                      color: 'white', 
+                      px: 3, 
+                      py: 2
+                    }}>
                         <Stack direction="row" alignItems="center" spacing={2}>
-                            <Avatar sx={{ bgcolor: '#fff', color: '#1976d2' }}><PersonIcon /></Avatar>
-                            <Typography variant="h6" sx={{ fontWeight: 600 }}>Volunteer Details</Typography>
+                            <Avatar sx={{ 
+                              bgcolor: 'rgba(0, 212, 255, 0.2)', 
+                              color: '#00D4FF',
+                              border: '2px solid rgba(0, 212, 255, 0.3)'
+                            }}>
+                              <PersonIcon />
+                            </Avatar>
+                            <Typography variant="h6" sx={{ 
+                              fontWeight: 700,
+                              color: '#FFFFFF',
+                              letterSpacing: '0.3px'
+                            }}>
+                              Volunteer Details
+                            </Typography>
                         </Stack>
-                        <IconButton onClick={handleDrawerClose} sx={{ color: 'white' }}><CloseIcon /></IconButton>
+                        <IconButton 
+                          onClick={handleDrawerClose} 
+                          sx={{ 
+                            color: '#00D4FF',
+                            background: 'rgba(0, 180, 240, 0.1)',
+                            border: '1px solid rgba(0, 180, 240, 0.3)',
+                            '&:hover': {
+                              background: 'rgba(0, 180, 240, 0.2)',
+                              transform: 'rotate(90deg)'
+                            },
+                            transition: 'all 0.3s ease'
+                          }}
+                        >
+                          <CloseIcon />
+                        </IconButton>
                     </Box>
-                    <Card sx={{ m: 3, boxShadow: 2 }}>
+
+                    <Box sx={{ p: 3 }}>
+                      <Card sx={{ 
+                        boxShadow: '0 8px 32px rgba(0, 32, 96, 0.5)',
+                        background: 'linear-gradient(135deg, rgba(0, 32, 96, 0.6) 0%, rgba(0, 20, 64, 0.6) 100%)',
+                        backdropFilter: 'blur(20px)',
+                        border: '2px solid rgba(0, 180, 240, 0.3)',
+                        borderRadius: 2
+                      }}>
                         <CardContent>
                             {selectedVolunteer && (
                                 <Box>
                                     {/* General Info Section */}
-                                    <Typography variant="subtitle1" sx={{ fontWeight: 500, mb: 1 }}>General</Typography>
-                                    <Divider sx={{ mb: 2 }} />
+                                    <Typography variant="subtitle1" sx={{ 
+                                      fontWeight: 600, 
+                                      mb: 2,
+                                      color: '#00D4FF',
+                                      letterSpacing: '0.3px'
+                                    }}>
+                                      General
+                                    </Typography>
+                                    <Divider sx={{ mb: 2, borderColor: 'rgba(0, 180, 240, 0.3)' }} />
+                                    
                                     <Stack direction="row" alignItems="center" spacing={2} mb={2}>
-                                        <Avatar sx={{ bgcolor: '#1976d2', color: 'white', width: 48, height: 48, fontSize: 24 }}>
+                                        <Avatar sx={{ 
+                                          bgcolor: 'rgba(0, 212, 255, 0.2)', 
+                                          color: '#00D4FF', 
+                                          width: 56, 
+                                          height: 56, 
+                                          fontSize: 24,
+                                          border: '2px solid rgba(0, 212, 255, 0.3)',
+                                          fontWeight: 700
+                                        }}>
                                             {selectedVolunteer.name ? selectedVolunteer.name[0].toUpperCase() : '?'}
                                         </Avatar>
                                         <Box>
-                                            <Typography variant="h6">{selectedVolunteer.name}</Typography>
-                                            <Chip label={selectedVolunteer.current_status} color={selectedVolunteer.current_status === 'available' ? 'success' : 'default'} size="small" sx={{ mt: 1 }} />
+                                            <Typography variant="h6" sx={{ color: '#FFFFFF', fontWeight: 600 }}>
+                                              {selectedVolunteer.name}
+                                            </Typography>
+                                            <Chip 
+                                              label={selectedVolunteer.current_status} 
+                                              size="small" 
+                                              sx={{ 
+                                                mt: 1,
+                                                background: selectedVolunteer.current_status === 'available' 
+                                                  ? 'rgba(0, 255, 136, 0.15)' 
+                                                  : 'rgba(136, 136, 136, 0.15)',
+                                                color: selectedVolunteer.current_status === 'available' ? '#00FF88' : '#888888',
+                                                border: selectedVolunteer.current_status === 'available'
+                                                  ? '1px solid rgba(0, 255, 136, 0.3)'
+                                                  : '1px solid rgba(136, 136, 136, 0.3)',
+                                                fontWeight: 600
+                                              }} 
+                                            />
                                         </Box>
                                     </Stack>
-                                    <Typography color="text.secondary" sx={{ mb: 2 }}>Last Update: {new Date(selectedVolunteer.last_update).toLocaleString()}</Typography>
-                                    <Typography color="text.secondary" sx={{ mb: 2 }}>Last Activity: {selectedVolunteer.last_activity ? new Date(selectedVolunteer.last_activity).toLocaleString() : '—'}</Typography>
+
+                                    <Typography sx={{ color: '#00B0F0', mb: 1, fontSize: '0.9rem' }}>
+                                      <strong>Last Update:</strong> {new Date(selectedVolunteer.last_update).toLocaleString()}
+                                    </Typography>
+                                    <Typography sx={{ color: '#00B0F0', mb: 3, fontSize: '0.9rem' }}>
+                                      <strong>Last Activity:</strong> {selectedVolunteer.last_activity ? new Date(selectedVolunteer.last_activity).toLocaleString() : '—'}
+                                    </Typography>
+
                                     {/* Hardware Section */}
-                                    <Typography variant="subtitle1" sx={{ fontWeight: 500, mt: 2, mb: 1 }}><MemoryIcon fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} /> Hardware</Typography>
-                                    <Divider sx={{ mb: 2 }} />
-                                    <Stack spacing={1}>
-                                        <Typography><b>CPU Model:</b> {selectedVolunteer.cpu_model}</Typography>
-                                        <Typography><b>CPU Cores:</b> {selectedVolunteer.cpu_cores}</Typography>
-                                        <Typography><b>Total RAM:</b> {selectedVolunteer.total_ram}</Typography>
-                                        <Typography><b>Available Storage:</b> {selectedVolunteer.available_storage}</Typography>
-                                        <Typography><b>Operating System:</b> {selectedVolunteer.operating_system}</Typography>
-                                        <Typography><b>GPU Available:</b> {selectedVolunteer.gpu_available ? 'Yes' : 'No'}</Typography>
-                                        <Typography><b>GPU Model:</b> {selectedVolunteer.gpu_model}</Typography>
-                                        <Typography><b>GPU Memory:</b> {selectedVolunteer.gpu_memory}</Typography>
+                                    <Typography variant="subtitle1" sx={{ 
+                                      fontWeight: 600, 
+                                      mt: 3, 
+                                      mb: 2,
+                                      color: '#00D4FF',
+                                      letterSpacing: '0.3px',
+                                      display: 'flex',
+                                      alignItems: 'center'
+                                    }}>
+                                      <MemoryIcon fontSize="small" sx={{ mr: 1 }} /> Hardware
+                                    </Typography>
+                                    <Divider sx={{ mb: 2, borderColor: 'rgba(0, 180, 240, 0.3)' }} />
+                                    
+                                    <Stack spacing={1.5}>
+                                        {[
+                                          { label: 'CPU Model', value: selectedVolunteer.cpu_model },
+                                          { label: 'CPU Cores', value: selectedVolunteer.cpu_cores },
+                                          { label: 'Total RAM', value: selectedVolunteer.total_ram },
+                                          { label: 'Available Storage', value: selectedVolunteer.available_storage },
+                                          { label: 'Operating System', value: selectedVolunteer.operating_system },
+                                          { label: 'GPU Available', value: selectedVolunteer.gpu_available ? 'Yes' : 'No' },
+                                          { label: 'GPU Model', value: selectedVolunteer.gpu_model },
+                                          { label: 'GPU Memory', value: selectedVolunteer.gpu_memory }
+                                        ].map((item, idx) => (
+                                          <Box key={idx} sx={{
+                                            p: 1.5,
+                                            background: 'rgba(0, 180, 240, 0.05)',
+                                            borderRadius: 1,
+                                            border: '1px solid rgba(0, 180, 240, 0.1)'
+                                          }}>
+                                            <Typography sx={{ color: '#00B0F0', fontSize: '0.85rem' }}>
+                                              <strong>{item.label}:</strong>
+                                            </Typography>
+                                            <Typography sx={{ color: '#FFFFFF', fontSize: '0.9rem', mt: 0.5 }}>
+                                              {item.value || '—'}
+                                            </Typography>
+                                          </Box>
+                                        ))}
                                     </Stack>
+
                                     {/* Network Section */}
-                                    <Typography variant="subtitle1" sx={{ fontWeight: 500, mt: 3, mb: 1 }}><LanIcon fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} /> Network</Typography>
-                                    <Divider sx={{ mb: 2 }} />
-                                    <Stack spacing={1}>
-                                        <Typography><b>IP Address:</b> {selectedVolunteer.ip_address}</Typography>
-                                        <Typography><b>Communication Port:</b> {selectedVolunteer.communication_port}</Typography>
+                                    <Typography variant="subtitle1" sx={{ 
+                                      fontWeight: 600, 
+                                      mt: 3, 
+                                      mb: 2,
+                                      color: '#00D4FF',
+                                      letterSpacing: '0.3px',
+                                      display: 'flex',
+                                      alignItems: 'center'
+                                    }}>
+                                      <LanIcon fontSize="small" sx={{ mr: 1 }} /> Network
+                                    </Typography>
+                                    <Divider sx={{ mb: 2, borderColor: 'rgba(0, 180, 240, 0.3)' }} />
+                                    
+                                    <Stack spacing={1.5}>
+                                        {[
+                                          { label: 'IP Address', value: selectedVolunteer.ip_address },
+                                          { label: 'Communication Port', value: selectedVolunteer.communication_port }
+                                        ].map((item, idx) => (
+                                          <Box key={idx} sx={{
+                                            p: 1.5,
+                                            background: 'rgba(0, 180, 240, 0.05)',
+                                            borderRadius: 1,
+                                            border: '1px solid rgba(0, 180, 240, 0.1)'
+                                          }}>
+                                            <Typography sx={{ color: '#00B0F0', fontSize: '0.85rem' }}>
+                                              <strong>{item.label}:</strong>
+                                            </Typography>
+                                            <Typography sx={{ color: '#FFFFFF', fontSize: '0.9rem', mt: 0.5 }}>
+                                              {item.value || '—'}
+                                            </Typography>
+                                          </Box>
+                                        ))}
                                     </Stack>
+
                                     {/* Preferences Section */}
-                                    <Typography variant="subtitle1" sx={{ fontWeight: 500, mt: 3, mb: 1 }}><DnsIcon fontSize="small" sx={{ mr: 1, verticalAlign: 'middle' }} /> Preferences</Typography>
-                                    <Divider sx={{ mb: 2 }} />
-                                    <Typography>{JSON.stringify(selectedVolunteer.preferences)}</Typography>
+                                    <Typography variant="subtitle1" sx={{ 
+                                      fontWeight: 600, 
+                                      mt: 3, 
+                                      mb: 2,
+                                      color: '#00D4FF',
+                                      letterSpacing: '0.3px',
+                                      display: 'flex',
+                                      alignItems: 'center'
+                                    }}>
+                                      <DnsIcon fontSize="small" sx={{ mr: 1 }} /> Preferences
+                                    </Typography>
+                                    <Divider sx={{ mb: 2, borderColor: 'rgba(0, 180, 240, 0.3)' }} />
+                                    
+                                    <Box sx={{
+                                      p: 2,
+                                      background: 'rgba(0, 0, 0, 0.3)',
+                                      borderRadius: 1,
+                                      border: '1px solid rgba(0, 180, 240, 0.2)',
+                                      maxHeight: 200,
+                                      overflowY: 'auto'
+                                    }}>
+                                      <Typography sx={{ 
+                                        color: '#00D4FF', 
+                                        fontSize: '0.85rem',
+                                        fontFamily: 'monospace',
+                                        whiteSpace: 'pre-wrap',
+                                        wordBreak: 'break-word'
+                                      }}>
+                                        {JSON.stringify(selectedVolunteer.preferences, null, 2)}
+                                      </Typography>
+                                    </Box>
                                 </Box>
                             )}
                         </CardContent>
-                    </Card>
+                      </Card>
+                    </Box>
                 </Box>
             </Drawer>
         </Box>
