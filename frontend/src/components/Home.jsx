@@ -25,49 +25,23 @@ import { PieChart, Pie, Cell, Legend, Tooltip as RechartsTooltip, ResponsiveCont
 const Home = () => {
   // State for dashboard stats
   const [stats, setStats] = useState({
-    managers: 2,
-    volunteers: 5,
-    workflows: 3,
-    tasks: 10
+    managers: 0,
+    volunteers: 0,
+    workflows: 0,
+    tasks: 0
   });
   const [loadingStats, setLoadingStats] = useState(true);
-  const [activeVolunteers, setActiveVolunteers] = useState([
-    { id: '1', name: 'Volunteer 1', status: 'available', last_update: new Date().toISOString() },
-    { id: '2', name: 'Volunteer 2', status: 'available', last_update: new Date().toISOString() },
-    { id: '3', name: 'Volunteer 3', status: 'available', last_update: new Date().toISOString() },
-    { id: '4', name: 'Volunteer 4', status: 'available', last_update: new Date().toISOString() },
-    { id: '5', name: 'Volunteer 5', status: 'available', last_update: new Date().toISOString() }
-  ]);
+  const [activeVolunteers, setActiveVolunteers] = useState([]);
   const [loadingVolunteers, setLoadingVolunteers] = useState(true);
   const [errorVolunteers, setErrorVolunteers] = useState(null);
-  const [runningWorkflows, setRunningWorkflows] = useState([
-    { id: '1', name: 'Data Processing', status: 'RUNNING', owner: { username: 'admin' }, created_at: new Date().toISOString() },
-    { id: '2', name: 'Image Analysis', status: 'RUNNING', owner: { username: 'yves' }, created_at: new Date().toISOString() }
-  ]);
+  const [runningWorkflows, setRunningWorkflows] = useState([]);
   const [loadingRunningWorkflows, setLoadingRunningWorkflows] = useState(true);
   const [errorRunningWorkflows, setErrorRunningWorkflows] = useState(null);
-  const [systemHealth, setSystemHealth] = useState({
-    status: 'ok',
-    details: {
-      database: 'connected',
-      active_volunteers: 3,
-      recent_errors: 0,
-      redis_connection: 'connected'
-    }
-  });
+  const [systemHealth, setSystemHealth] = useState(null);
   const [loadingHealth, setLoadingHealth] = useState(true);
   const [errorHealth, setErrorHealth] = useState(null);
-  const [workflowStatusData, setWorkflowStatusData] = useState({
-    CREATED: 2,
-    RUNNING: 3,
-    COMPLETED: 5,
-    FAILED: 1
-  });
-  const [volunteerStatusData, setVolunteerStatusData] = useState({
-    available: 3,
-    busy: 2,
-    offline: 1
-  });
+  const [workflowStatusData, setWorkflowStatusData] = useState([]);
+  const [volunteerStatusData, setVolunteerStatusData] = useState([]);
   const [loadingCharts, setLoadingCharts] = useState(true);
 
   // Color mapping for statuses - Updated with new color scheme
@@ -138,44 +112,10 @@ const Home = () => {
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      if (!stats.managers) {
-        setStats({ managers: 2, volunteers: 5, workflows: 3, tasks: 10 });
-      }
-      if (!activeVolunteers.length) {
-        setActiveVolunteers([]);
-      }
-      if (!runningWorkflows.length) {
-        setRunningWorkflows([
-          { id: '1', name: 'Data Processing', status: 'RUNNING', owner: { username: 'admin' }, created_at: new Date().toISOString() },
-          { id: '2', name: 'Image Analysis', status: 'RUNNING', owner: { username: 'yves' }, created_at: new Date().toISOString() }
-        ]);
-      }
-      if (!systemHealth) {
-        setSystemHealth({
-          status: 'error',
-          details: {
-            database: 'disconnected',
-            active_volunteers: 0,
-            recent_errors: 1,
-            redis_connection: 'disconnected'
-          }
-        });
-      }
-      if (!workflowStatusData.length) {
-        setWorkflowStatusData({
-          CREATED: 2,
-          RUNNING: 3,
-          COMPLETED: 5,
-          FAILED: 1
-        });
-      }
-      if (!volunteerStatusData.length) {
-        setVolunteerStatusData({
-          available: 3,
-          busy: 2,
-          offline: 1
-        });
-      }
+      // Ne pas utiliser de données de fallback hardcodées
+      setErrorVolunteers('Failed to load data');
+      setErrorRunningWorkflows('Failed to load data');
+      setErrorHealth('Failed to load data');
     }
   };
 

@@ -7,22 +7,15 @@ import AxiosInstance from './axios';
 import DeleteIcon from '@mui/icons-material/Delete';
 
 const Manager = () => {
-  const [myData, setMyData] = useState([
-    { id: '1', username: 'Manager 1', email: 'manager1@example.com', status: 'active', registration_date: new Date().toISOString(), last_login: new Date().toISOString() },
-    { id: '2', username: 'Manager 2', email: 'manager2@example.com', status: 'active', registration_date: new Date().toISOString(), last_login: new Date().toISOString() },
-    { id: '3', username: 'Manager 3', email: 'manager3@example.com', status: 'active', registration_date: new Date().toISOString(), last_login: new Date().toISOString() }
-  ]);
+  const [myData, setMyData] = useState([]);
 
   const fetchData = () => {
     AxiosInstance.get(`api/managers/`).then((res) => {
       setMyData(res.data);
     }).catch(error => {
       console.error("Error fetching managers:", error);
-      setMyData([
-        { id: '1', username: 'Manager 1', email: 'manager1@example.com', status: 'active', registration_date: new Date().toISOString(), last_login: new Date().toISOString() },
-        { id: '2', username: 'Manager 2', email: 'manager2@example.com', status: 'active', registration_date: new Date().toISOString(), last_login: new Date().toISOString() },
-        { id: '3', username: 'Manager 3', email: 'manager3@example.com', status: 'active', registration_date: new Date().toISOString(), last_login: new Date().toISOString() }
-      ]);
+      // Ne pas utiliser de données de fallback hardcodées
+      setMyData([]);
     });
   };
 

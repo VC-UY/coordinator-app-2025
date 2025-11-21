@@ -8,27 +8,17 @@ import DevicesIcon from '@mui/icons-material/Devices';
 import AxiosInstance from './axios';
 
 const SystemStatus = () => {
-  // Initialize with fallback data
+  // Initialize with empty data
   const [systemState, setSystemState] = useState({
-    managers: { 
-      total: 3, 
-      connected: 2, 
-      list: [
-        { id: '1', username: 'Manager 1', connected: true, last_activity: new Date().toISOString() },
-        { id: '2', username: 'Manager 2', connected: true, last_activity: new Date().toISOString() },
-        { id: '3', username: 'Manager 3', connected: false, last_activity: new Date().toISOString() }
-      ] 
+    managers: {
+      total: 0,
+      connected: 0,
+      list: []
     },
-    volunteers: { 
-      total: 5, 
-      connected: 3, 
-      list: [
-        { id: '1', name: 'Volunteer 1', connected: true, last_activity: new Date().toISOString(), resources: { cpu: 20, memory: 40 }, ip_address: '192.168.1.100' },
-        { id: '2', name: 'Volunteer 2', connected: true, last_activity: new Date().toISOString(), resources: { cpu: 15, memory: 30 }, ip_address: '192.168.1.101' },
-        { id: '3', name: 'Volunteer 3', connected: true, last_activity: new Date().toISOString(), resources: { cpu: 25, memory: 45 }, ip_address: '192.168.1.102' },
-        { id: '4', name: 'Volunteer 4', connected: false, last_activity: new Date().toISOString(), resources: null, ip_address: '192.168.1.103' },
-        { id: '5', name: 'Volunteer 5', connected: false, last_activity: new Date().toISOString(), resources: null, ip_address: '192.168.1.104' }
-      ] 
+    volunteers: {
+      total: 0,
+      connected: 0,
+      list: []
     },
     lastUpdated: new Date()
   });

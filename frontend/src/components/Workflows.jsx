@@ -7,27 +7,7 @@ import AxiosInstance from './axios';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 
 function Workflows() {
-  const [workflows, setWorkflows] = useState([
-    {
-      id: '1',
-      name: 'Data Processing Workflow',
-      status: 'RUNNING',
-      created_at: new Date().toISOString(),
-      tasks: [
-        { id: '1', name: 'Task 1', status: 'RUNNING', assigned_to: { id: '1', name: 'Volunteer 1' } },
-        { id: '2', name: 'Task 2', status: 'PENDING', assigned_to: { id: '2', name: 'Volunteer 2' } }
-      ]
-    },
-    {
-      id: '2',
-      name: 'Image Analysis Workflow',
-      status: 'CREATED',
-      created_at: new Date().toISOString(),
-      tasks: [
-        { id: '3', name: 'Task 3', status: 'PENDING', assigned_to: null }
-      ]
-    }
-  ]);
+  const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -54,27 +34,9 @@ function Workflows() {
       setWorkflows(workflowsWithTasks);
     } catch (err) {
       console.error('Error loading workflows:', err);
-      setWorkflows([
-        {
-          id: '1',
-          name: 'Data Processing Workflow',
-          status: 'RUNNING',
-          created_at: new Date().toISOString(),
-          tasks: [
-            { id: '1', name: 'Task 1', status: 'RUNNING', assigned_to: { id: '1', name: 'Volunteer 1' } },
-            { id: '2', name: 'Task 2', status: 'PENDING', assigned_to: { id: '2', name: 'Volunteer 2' } }
-          ]
-        },
-        {
-          id: '2',
-          name: 'Image Analysis Workflow',
-          status: 'CREATED',
-          created_at: new Date().toISOString(),
-          tasks: [
-            { id: '3', name: 'Task 3', status: 'PENDING', assigned_to: null }
-          ]
-        }
-      ]);
+      // Ne pas utiliser de données de fallback hardcodées
+      setWorkflows([]);
+      setError('Failed to load workflows');
     }
   };
 
