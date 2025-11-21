@@ -32,6 +32,7 @@ class Volunteer(Document):
     performance = DictField(default=dict)
     last_activity = DateTimeField(null=True)
     machine_info = DictField(default=dict)  # Pour stocker les informations détaillées de la machine
+    is_active = BooleanField(default=True)  # Pour l'activation/désactivation du compte (sécurité)
 
     def __str__(self):
         return f"Machine {self.name} - {self.current_status}"

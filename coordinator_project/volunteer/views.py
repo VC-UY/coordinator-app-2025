@@ -7,6 +7,10 @@ from .decorators.auth_decorators import jwt_required
 from django.utils import timezone
 from .models import Volunteer
 from .serializers import VolunteerSerializer
+from redis_communication.client import RedisClient
+import logging
+
+logger = logging.getLogger(__name__)
 
 class VolunteerViewSet(viewsets.ViewSet):
     permission_classes = [permissions.AllowAny]
@@ -92,3 +96,62 @@ class VolunteerViewSet(viewsets.ViewSet):
             return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
         volunteer.update_status(new_status)
         return Response({'status': 'updated'})
+
+    @action(detail=True, methods=['post'])
+    def activate(self, request, pk=None):
+        """Active un volunteer (permet l'utilisation du système)"""
+        try:
+            volunteer = Volunteer.objects.get(id=pk)
+            volunteer.is_active = True
+            volunteer.save()
+
+            # Publier sur Redis
+            try:
+                redis_client = RedisClient.get_instance()
+                redis_client.publish('volunteer/status', {
+                    'id': str(volunteer.id),
+                    'username': volunteer.username,
+                    'name': volunteer.name,
+                    'is_active': True,
+                    'action': 'activated'
+                })
+            except Exception as e:
+                logger.error(f"Erreur lors de la publication sur Redis: {e}")
+
+            return Response({
+                'message': f'Volunteer {volunteer.name} activé avec succès',
+                'is_active': volunteer.is_active
+            })
+        except Volunteer.DoesNotExist:
+            return Response({'error': 'Volunteer not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['post'])
+    def deactivate(self, request, pk=None):
+        """Désactive un volunteer (empêche l'utilisation du système)"""
+        try:
+            volunteer = Volunteer.objects.get(id=pk)
+            reason = request.data.get('reason', 'Aucune raison fournie')
+            volunteer.is_active = False
+            volunteer.save()
+
+            # Publier sur Redis
+            try:
+                redis_client = RedisClient.get_instance()
+                redis_client.publish('volunteer/status', {
+                    'id': str(volunteer.id),
+                    'username': volunteer.username,
+                    'name': volunteer.name,
+                    'is_active': False,
+                    'action': 'deactivated',
+                    'reason': reason
+                })
+            except Exception as e:
+                logger.error(f"Erreur lors de la publication sur Redis: {e}")
+
+            return Response({
+                'message': f'Volunteer {volunteer.name} désactivé avec succès',
+                'is_active': volunteer.is_active,
+                'reason': reason
+            })
+        except Volunteer.DoesNotExist:
+            return Response({'error': 'Volunteer not found'}, status=status.HTTP_404_NOT_FOUND)

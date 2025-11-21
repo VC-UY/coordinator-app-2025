@@ -57,34 +57,34 @@ export default function Navbar({content}) {
       `}</Box>
 
       {/* AppBar */}
-      <AppBar 
-        position="fixed" 
-        sx={{ 
+      <AppBar
+        position="fixed"
+        sx={{
           zIndex: (theme) => theme.zIndex.drawer + 1,
-          background: 'linear-gradient(135deg, #002060 0%, #001440 100%)',
-          boxShadow: '0 4px 24px rgba(0, 32, 96, 0.4), 0 0 0 1px rgba(0, 180, 240, 0.2)',
+          background: 'rgba(30, 41, 59, 0.9)',
+          boxShadow: '0 4px 24px rgba(10, 22, 40, 0.4), 0 0 0 1px rgba(59, 130, 246, 0.2)',
           backdropFilter: 'blur(10px)',
-          borderBottom: '1px solid rgba(0, 180, 240, 0.2)',
+          borderBottom: '1px solid rgba(71, 85, 105, 0.3)',
         }}
       >
         <Toolbar sx={{ minHeight: '70px !important', px: 3 }}>
           {/* Menu Toggle Button */}
-          <IconButton 
-            onClick={changeMenu} 
+          <IconButton
+            onClick={changeMenu}
             sx={{
               width: '48px',
               height: '48px',
               borderRadius: '16px',
-              border: '2px solid rgba(0, 212, 255, 0.3)',
-              background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, rgba(0, 180, 240, 0.1) 100%)',
-              color: '#00D4FF',
+              border: '2px solid rgba(59, 130, 246, 0.3)',
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(96, 165, 250, 0.1) 100%)',
+              color: '#60A5FA',
               marginRight: '24px',
               transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-              boxShadow: '0 4px 12px rgba(0, 212, 255, 0.2)',
+              boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)',
               '&:hover': {
                 transform: 'scale(1.1) rotate(5deg)',
-                boxShadow: '0 6px 20px rgba(0, 212, 255, 0.4)',
-                background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(0, 180, 240, 0.15) 100%)',
+                boxShadow: '0 6px 20px rgba(59, 130, 246, 0.4)',
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(96, 165, 250, 0.15) 100%)',
               }
             }}
           >
@@ -97,24 +97,24 @@ export default function Navbar({content}) {
               width: '48px',
               height: '48px',
               borderRadius: '14px',
-              background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.25) 0%, rgba(0, 180, 240, 0.15) 100%)',
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(96, 165, 250, 0.15) 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              border: '2px solid rgba(0, 212, 255, 0.4)',
+              border: '2px solid rgba(59, 130, 246, 0.4)',
               animation: 'float 3s ease-in-out infinite',
-              boxShadow: '0 4px 16px rgba(0, 212, 255, 0.3)',
+              boxShadow: '0 4px 16px rgba(59, 130, 246, 0.3)',
             }}>
-              <FlashOnIcon sx={{ fontSize: 26, color: '#00D4FF', filter: 'drop-shadow(0 0 8px rgba(0, 212, 255, 0.8))' }} />
+              <FlashOnIcon sx={{ fontSize: 26, color: '#3B82F6', filter: 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.8))' }} />
             </Box>
             <Box>
-              <Typography 
-                variant="h6" 
-                noWrap 
+              <Typography
+                variant="h6"
+                noWrap
                 sx={{
                   fontSize: '22px',
                   fontWeight: 800,
-                  background: 'linear-gradient(135deg, #FFFFFF 0%, #00D4FF 100%)',
+                  background: 'linear-gradient(135deg, #FFFFFF 0%, #60A5FA 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
@@ -123,7 +123,7 @@ export default function Navbar({content}) {
               >
                 Coordinator Dashboard
               </Typography>
-              <Typography sx={{ fontSize: '12px', color: '#00B0F0', fontWeight: 500, letterSpacing: '0.8px' }}>
+              <Typography sx={{ fontSize: '12px', color: '#60A5FA', fontWeight: 500, letterSpacing: '0.8px' }}>
                 VolunSys-UY1
               </Typography>
             </Box>
@@ -141,7 +141,7 @@ export default function Navbar({content}) {
                 width: '100%',
                 height: '44px',
                 borderRadius: '14px',
-                border: '2px solid rgba(0, 180, 240, 0.3)',
+                border: '2px solid rgba(71, 85, 105, 0.5)',
                 background: 'rgba(255, 255, 255, 0.1)',
                 backdropFilter: 'blur(10px)',
                 padding: '0 16px 0 48px',
@@ -150,8 +150,8 @@ export default function Navbar({content}) {
                 transition: 'all 0.3s ease',
                 '&:focus-within': {
                   background: 'rgba(255, 255, 255, 0.15)',
-                  borderColor: '#00D4FF',
-                  boxShadow: '0 4px 16px rgba(0, 212, 255, 0.3)',
+                  borderColor: '#3B82F6',
+                  boxShadow: '0 4px 16px rgba(59, 130, 246, 0.3)',
                 },
                 '& input::placeholder': {
                   color: 'rgba(255, 255, 255, 0.6)',
@@ -163,34 +163,34 @@ export default function Navbar({content}) {
               left: '16px',
               top: '50%',
               transform: 'translateY(-50%)',
-              color: '#00B0F0',
+              color: '#60A5FA',
               pointerEvents: 'none',
             }} />
           </Box>
 
           {/* Notifications */}
-          <IconButton 
+          <IconButton
             sx={{
               width: '44px',
               height: '44px',
               borderRadius: '12px',
-              border: '2px solid rgba(0, 180, 240, 0.3)',
+              border: '2px solid rgba(71, 85, 105, 0.5)',
               background: 'rgba(255, 255, 255, 0.1)',
-              color: '#00D4FF',
+              color: '#3B82F6',
               marginRight: '12px',
               transition: 'all 0.3s ease',
               '&:hover': {
-                background: 'rgba(0, 212, 255, 0.15)',
+                background: 'rgba(59, 130, 246, 0.15)',
                 transform: 'scale(1.1)',
               }
             }}
           >
-            <Badge 
-              badgeContent={3} 
+            <Badge
+              badgeContent={3}
               sx={{
                 '& .MuiBadge-badge': {
                   background: 'linear-gradient(135deg, #FF4444 0%, #FF0000 100%)',
-                  border: '2px solid #002060',
+                  border: '2px solid #1E293B',
                   animation: 'pulse 2s ease-in-out infinite',
                 }
               }}
@@ -200,7 +200,7 @@ export default function Navbar({content}) {
           </IconButton>
 
           {/* User Menu */}
-          <Box 
+          <Box
             onClick={handleUserMenuClick}
             sx={{
               display: 'flex',
@@ -208,25 +208,25 @@ export default function Navbar({content}) {
               gap: '12px',
               padding: '8px 16px',
               borderRadius: '14px',
-              border: '2px solid rgba(0, 180, 240, 0.3)',
+              border: '2px solid rgba(71, 85, 105, 0.5)',
               background: 'rgba(255, 255, 255, 0.1)',
               color: '#FFFFFF',
               cursor: 'pointer',
               transition: 'all 0.3s ease',
               '&:hover': {
-                background: 'rgba(0, 212, 255, 0.15)',
-                borderColor: '#00D4FF',
+                background: 'rgba(59, 130, 246, 0.15)',
+                borderColor: '#3B82F6',
               }
             }}
           >
-            <Avatar 
+            <Avatar
               sx={{
                 width: 36,
                 height: 36,
                 borderRadius: '10px',
-                background: 'linear-gradient(135deg, #00D4FF 0%, #00B0F0 100%)',
+                background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
                 border: '2px solid rgba(255, 255, 255, 0.2)',
-                color: '#002060',
+                color: '#FFFFFF',
                 fontSize: '16px',
                 fontWeight: 700,
               }}
@@ -235,7 +235,7 @@ export default function Navbar({content}) {
             </Avatar>
             <Box sx={{ textAlign: 'left' }}>
               <Typography sx={{ fontSize: '14px', fontWeight: 600 }}>Admin User</Typography>
-              <Typography sx={{ fontSize: '11px', color: '#00B0F0' }}>Coordinator</Typography>
+              <Typography sx={{ fontSize: '11px', color: '#94A3B8' }}>Coordinator</Typography>
             </Box>
           </Box>
 
@@ -256,45 +256,46 @@ export default function Navbar({content}) {
               '& .MuiPaper-root': {
                 marginTop: '12px',
                 borderRadius: '16px',
-                boxShadow: '0 8px 32px rgba(0, 32, 96, 0.3)',
-                border: '2px solid rgba(0, 180, 240, 0.2)',
-                background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FCFF 100%)',
+                boxShadow: '0 8px 32px rgba(10, 22, 40, 0.3)',
+                border: '1px solid rgba(71, 85, 105, 0.3)',
+                background: 'rgba(30, 41, 59, 0.95)',
+                backdropFilter: 'blur(10px)',
                 overflow: 'hidden',
                 animation: 'fadeIn 0.3s ease',
               }
             }}
           >
             <MenuList sx={{ p: 0 }}>
-              <MenuItem 
+              <MenuItem
                 onClick={handleUserMenuClose}
                 sx={{
                   padding: '14px 20px',
                   display: 'flex',
                   gap: '12px',
-                  color: '#002060',
+                  color: '#FFFFFF',
                   fontSize: '14px',
                   fontWeight: 500,
                   transition: 'all 0.2s ease',
                   '&:hover': {
-                    background: 'rgba(0, 180, 240, 0.1)',
+                    background: 'rgba(59, 130, 246, 0.1)',
                   }
                 }}
               >
-                <SettingsIcon sx={{ fontSize: 18, color: '#00B0F0' }} />
+                <SettingsIcon sx={{ fontSize: 18, color: '#60A5FA' }} />
                 Settings
               </MenuItem>
               <Box sx={{
                 height: '1px',
-                background: 'linear-gradient(90deg, transparent 0%, rgba(0, 180, 240, 0.3) 50%, transparent 100%)',
+                background: 'linear-gradient(90deg, transparent 0%, rgba(71, 85, 105, 0.5) 50%, transparent 100%)',
                 margin: '0 12px',
               }} />
-              <MenuItem 
+              <MenuItem
                 onClick={handleUserMenuClose}
                 sx={{
                   padding: '14px 20px',
                   display: 'flex',
                   gap: '12px',
-                  color: '#002060',
+                  color: '#FFFFFF',
                   fontSize: '14px',
                   fontWeight: 500,
                   transition: 'all 0.2s ease',
@@ -319,13 +320,14 @@ export default function Navbar({content}) {
           width: isBigMenu ? drawerWidth : shortDrawerWidth,
           flexShrink: 0,
           transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-          [`& .MuiDrawer-paper`]: { 
-            width: isBigMenu ? drawerWidth : shortDrawerWidth, 
+          [`& .MuiDrawer-paper`]: {
+            width: isBigMenu ? drawerWidth : shortDrawerWidth,
             boxSizing: 'border-box',
             transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-            background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FCFF 100%)',
-            boxShadow: '4px 0 24px rgba(0, 32, 96, 0.1)',
-            borderRight: '2px solid rgba(0, 180, 240, 0.15)',
+            background: 'rgba(30, 41, 59, 0.95)',
+            backdropFilter: 'blur(10px)',
+            boxShadow: '4px 0 24px rgba(10, 22, 40, 0.3)',
+            borderRight: '1px solid rgba(71, 85, 105, 0.3)',
             overflowX: 'hidden',
           },
         }}
@@ -335,12 +337,12 @@ export default function Navbar({content}) {
       </Drawer>
 
       {/* Main Content Area */}
-      <Box 
-        component="main" 
-        sx={{ 
-          flexGrow: 1, 
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
           p: 4,
-          background: 'linear-gradient(180deg, #F8FCFF 0%, #FFFFFF 100%)',
+          background: 'transparent', // Le dégradé est dans body via index.css
           minHeight: '100vh',
         }}
       >

@@ -16,6 +16,8 @@ import Notifications from './components/Notifications';
 import Settings from './components/Settings';
 import Help from './components/Help';
 import SystemStatus from './components/SystemStatus';
+import ClientValidation from './components/ClientValidation';
+import ClientMonitoring from './components/ClientMonitoring';
 
 
 
@@ -42,6 +44,8 @@ function App() {
       <Route path="/settings" element={<Settings />} />
       <Route path="/help" element={<Help />} />
       <Route path="/system-status" element={<SystemStatus />} />
+      <Route path="/client-validation" element={<ClientValidation />} />
+      <Route path="/client-monitoring" element={<ClientMonitoring />} />
   </Routes>
     }
     />

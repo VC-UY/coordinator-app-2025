@@ -35,31 +35,34 @@ const Home = () => {
   const [volunteerStatusData, setVolunteerStatusData] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Couleurs selon la charte graphique
   const COLORS = {
-    primary: '#002060',
-    secondary: '#00B0F0',
-    dark: '#001440',
-    light: '#00D4FF',
+    primary: '#3B82F6',     // Bleu cyan lumineux
+    secondary: '#60A5FA',   // Bleu cyan clair
+    dark: '#0A1628',        // Bleu foncé profond
+    darker: '#1A2942',      // Bleu foncé moyen
+    light: '#93C5FD',       // Bleu très clair
+    accent: '#2563EB',      // Bleu accent
   };
 
   const STATUS_COLORS = {
-    CREATED: COLORS.primary,
-    VALIDATED: COLORS.secondary,
+    CREATED: COLORS.secondary,
+    VALIDATED: COLORS.primary,
     SUBMITTED: COLORS.light,
-    SPLITTING: COLORS.dark,
+    SPLITTING: COLORS.accent,
     ASSIGNING: COLORS.primary,
     PENDING: COLORS.secondary,
-    RUNNING: COLORS.light,
-    PAUSED: COLORS.dark,
-    PARTIAL_FAILURE: COLORS.primary,
+    RUNNING: COLORS.primary,
+    PAUSED: COLORS.accent,
+    PARTIAL_FAILURE: '#F59E0B',  // Orange pour les erreurs
     REASSIGNING: COLORS.secondary,
     AGGREGATING: COLORS.light,
-    COMPLETED: COLORS.secondary,
-    FAILED: COLORS.primary,
-    available: COLORS.light,
-    busy: COLORS.secondary,
-    offline: COLORS.dark,
-    maintenance: COLORS.primary,
+    COMPLETED: '#10B981',        // Vert pour succès
+    FAILED: '#EF4444',           // Rouge pour échec
+    available: '#10B981',
+    busy: '#F59E0B',
+    offline: '#6B7280',
+    maintenance: COLORS.accent,
   };
 
   const fetchAllData = async () => {
@@ -103,9 +106,9 @@ const Home = () => {
   }, []);
 
   return (
-    <Box sx={{ 
+    <Box sx={{
       minHeight: '100vh',
-      background: `linear-gradient(135deg, ${COLORS.dark} 0%, ${COLORS.primary} 50%, ${COLORS.dark} 100%)`,
+      background: 'transparent', // Le dégradé est déjà dans body via index.css
       p: { xs: 2, md: 4 },
       position: 'relative',
       overflow: 'hidden',
@@ -117,7 +120,7 @@ const Home = () => {
         width: '600px',
         height: '600px',
         borderRadius: '50%',
-        background: `radial-gradient(circle, ${COLORS.secondary}15 0%, transparent 70%)`,
+        background: `radial-gradient(circle, ${COLORS.primary}15 0%, transparent 70%)`,
         animation: 'pulse 8s ease-in-out infinite',
       },
       '&::after': {
@@ -128,7 +131,7 @@ const Home = () => {
         width: '500px',
         height: '500px',
         borderRadius: '50%',
-        background: `radial-gradient(circle, ${COLORS.light}10 0%, transparent 70%)`,
+        background: `radial-gradient(circle, ${COLORS.secondary}10 0%, transparent 70%)`,
         animation: 'pulse 6s ease-in-out infinite 1s',
       },
       '@keyframes pulse': {

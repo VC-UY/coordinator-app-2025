@@ -19,6 +19,7 @@ class VolunteerSerializer(serializers.Serializer):
     preferences = serializers.DictField(required=False)
     performance = serializers.DictField(required=False)
     last_activity = serializers.DateTimeField(allow_null=True, required=False)
+    is_active = serializers.BooleanField(default=True, required=False)
 
     def create(self, validated_data):
         volunteer = Volunteer(**validated_data)
