@@ -3,7 +3,12 @@ venv
 __pycache__
 .coordinator
 exp-env
+coordinator-env
+pending_requests
 
 *.log
 *.LOG
 *.sqlite3
+
+# Dossier de logs
+logs/
