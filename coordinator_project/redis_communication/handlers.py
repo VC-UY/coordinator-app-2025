@@ -635,12 +635,42 @@ def volunteer_registration_handler(channel: str, message: Message):
                 existing_machine.machine_info = machine_info
             
             existing_machine.save()
-            
+
             logger.info(f"Informations du volontaire {name} (ID: {existing_machine.id}) mises à jour")
-            
+
+            # Envoyer une notification WebSocket aux coordinateurs
+            try:
+                from channels.layers import get_channel_layer
+                from asgiref.sync import async_to_sync
+
+                channel_layer = get_channel_layer()
+                if channel_layer:
+                    volunteer_data = {
+                        'id': str(existing_machine.id),
+                        'name': existing_machine.name,
+                        'username': existing_machine.username,
+                        'status': existing_machine.current_status,
+                        'cpu_model': existing_machine.cpu_model,
+                        'cpu_cores': existing_machine.cpu_cores,
+                        'total_ram': existing_machine.total_ram,
+                        'operating_system': existing_machine.operating_system,
+                        'ip_address': existing_machine.ip_address
+                    }
+
+                    async_to_sync(channel_layer.group_send)(
+                        'volunteers_updates',
+                        {
+                            'type': 'volunteer_connected',
+                            'volunteer': volunteer_data
+                        }
+                    )
+                    logger.info(f"Notification WebSocket envoyée pour la reconnexion du volontaire {name}")
+            except Exception as ws_error:
+                logger.error(f"Erreur lors de l'envoi de la notification WebSocket: {ws_error}")
+
             # Générer un nouveau token
             token = generate_token(str(existing_machine.id), 'volunteer', 24)  # 24 heures
-            
+
             # Envoyer une réponse de succès avec les informations mises à jour
             client = RedisClient.get_instance()
             client.publish('auth/volunteer_register_response', {
@@ -651,7 +681,7 @@ def volunteer_registration_handler(channel: str, message: Message):
                 'token': token,
                 'is_update': True
             }, request_id=request_id)
-            
+
             # Supprimer la requête en attente
             delete_pending_request(request_id)
             return
@@ -709,9 +739,39 @@ def volunteer_registration_handler(channel: str, message: Message):
             volunteer.machine_info = machine_info
         
         volunteer.save()
-        
+
         logger.info(f"Volontaire {name} ({username}) enregistré avec succès (ID: {volunteer.id})")
-        
+
+        # Envoyer une notification WebSocket aux coordinateurs
+        try:
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+
+            channel_layer = get_channel_layer()
+            if channel_layer:
+                volunteer_data = {
+                    'id': str(volunteer.id),
+                    'name': volunteer.name,
+                    'username': volunteer.username,
+                    'status': volunteer.current_status,
+                    'cpu_model': volunteer.cpu_model,
+                    'cpu_cores': volunteer.cpu_cores,
+                    'total_ram': volunteer.total_ram,
+                    'operating_system': volunteer.operating_system,
+                    'ip_address': volunteer.ip_address
+                }
+
+                async_to_sync(channel_layer.group_send)(
+                    'volunteers_updates',
+                    {
+                        'type': 'volunteer_registered',
+                        'volunteer': volunteer_data
+                    }
+                )
+                logger.info(f"Notification WebSocket envoyée pour le nouveau volontaire {name}")
+        except Exception as ws_error:
+            logger.error(f"Erreur lors de l'envoi de la notification WebSocket: {ws_error}")
+
         # Envoyer une réponse de succès
         client = RedisClient.get_instance()
         client.publish('auth/volunteer_register_response', {
@@ -721,7 +781,7 @@ def volunteer_registration_handler(channel: str, message: Message):
             'username': username,
             'token': str(uuid.uuid4())  # Générer un token d'authentification
         }, request_id=request_id)
-        
+
         # Supprimer la requête en attente
         delete_pending_request(request_id)
         
@@ -817,9 +877,9 @@ def volunteer_login_handler(channel: str, message: Message):
         volunteer.last_activity = datetime.utcnow()
         volunteer.current_status = 'available'
         volunteer.save()
-        
+
         logger.info(f"Volontaire {username} authentifié avec succès")
-        
+
         # Mettre à jour les informations machine si fournies
         machine_info = data.get('machine_info')
         if machine_info:
@@ -828,7 +888,37 @@ def volunteer_login_handler(channel: str, message: Message):
                 del machine_info['partitions_disque']
             volunteer.machine_info = machine_info
             volunteer.save()
-        
+
+        # Envoyer une notification WebSocket aux coordinateurs
+        try:
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+
+            channel_layer = get_channel_layer()
+            if channel_layer:
+                volunteer_data = {
+                    'id': str(volunteer.id),
+                    'name': volunteer.name,
+                    'username': volunteer.username,
+                    'status': volunteer.current_status,
+                    'cpu_model': volunteer.cpu_model,
+                    'cpu_cores': volunteer.cpu_cores,
+                    'total_ram': volunteer.total_ram,
+                    'operating_system': volunteer.operating_system,
+                    'ip_address': volunteer.ip_address
+                }
+
+                async_to_sync(channel_layer.group_send)(
+                    'volunteers_updates',
+                    {
+                        'type': 'volunteer_connected',
+                        'volunteer': volunteer_data
+                    }
+                )
+                logger.info(f"Notification WebSocket envoyée pour la connexion du volontaire {username}")
+        except Exception as ws_error:
+            logger.error(f"Erreur lors de l'envoi de la notification WebSocket: {ws_error}")
+
         # Envoyer une réponse de succès
         client = RedisClient.get_instance()
         client.publish('auth/volunteer_login_response', {

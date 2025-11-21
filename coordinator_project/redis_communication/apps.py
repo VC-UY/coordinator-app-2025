@@ -21,13 +21,21 @@ class RedisCommunicationConfig(AppConfig):
         Méthode appelée au démarrage de l'application Django.
         Initialise le client Redis et tente de le démarrer automatiquement.
         """
-        # Ne pas exécuter en mode commande (sauf pour runserver)
+        # Ne pas exécuter en mode commande (sauf pour runserver et daphne)
         import sys
-        if 'runserver' not in sys.argv and 'manage.py' in sys.argv[0]:
+        # Démarrer avec runserver, daphne, ou directement avec ASGI
+        should_start = (
+            'runserver' in sys.argv or
+            'daphne' in sys.argv[0] or
+            'asgi' in sys.argv[0].lower() or
+            os.environ.get('DJANGO_SETTINGS_MODULE')  # Cas où Django est importé directement
+        )
+
+        if not should_start and 'manage.py' in sys.argv[0]:
             return
-            
-        # Éviter les doubles chargements avec le reloader Django
-        if os.environ.get('RUN_MAIN') != 'true':
+
+        # Éviter les doubles chargements avec le reloader Django (seulement pour runserver)
+        if os.environ.get('RUN_MAIN') == 'false':
             return
         
         # Importer ici pour éviter les imports circulaires

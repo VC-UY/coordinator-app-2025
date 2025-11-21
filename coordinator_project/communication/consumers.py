@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+
+
+
 import json
 import logging
 from channels.generic.websocket import AsyncWebsocketConsumer
@@ -9,12 +13,12 @@ logger = logging.getLogger(__name__)
 
 class TaskUpdatesConsumer(AsyncWebsocketConsumer):
     """
-    Consumer WebSocket pour les mises à jour en temps réel des tâches et workflows.
-    Les clients se connectent à ws://localhost:8001/ws/tasks/ pour recevoir les updates.
+    Consumer WebSocket pour les mises ï¿½ jour en temps rï¿½el des tï¿½ches et workflows.
+    Les clients se connectent ï¿½ ws://localhost:8001/ws/tasks/ pour recevoir les updates.
     """
 
     async def connect(self):
-        """Appelé quand un client WebSocket se connecte"""
+        """Appelï¿½ quand un client WebSocket se connecte"""
         # Ajouter ce consumer au groupe "tasks_updates"
         self.group_name = 'tasks_updates'
 
@@ -24,35 +28,35 @@ class TaskUpdatesConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
-        logger.info(f"WebSocket connecté: {self.channel_name}")
+        logger.info(f"WebSocket connectï¿½: {self.channel_name}")
 
         # Envoyer un message de bienvenue
         await self.send(text_data=json.dumps({
             'type': 'connection_established',
-            'message': 'Connecté au système de mises à jour en temps réel',
+            'message': 'Connectï¿½ au systï¿½me de mises ï¿½ jour en temps rï¿½el',
             'timestamp': datetime.now().isoformat()
         }))
 
     async def disconnect(self, close_code):
-        """Appelé quand un client WebSocket se déconnecte"""
+        """Appelï¿½ quand un client WebSocket se dï¿½connecte"""
         # Retirer ce consumer du groupe
         await self.channel_layer.group_discard(
             self.group_name,
             self.channel_name
         )
-        logger.info(f"WebSocket déconnecté: {self.channel_name} (code: {close_code})")
+        logger.info(f"WebSocket dï¿½connectï¿½: {self.channel_name} (code: {close_code})")
 
     async def receive(self, text_data):
         """
-        Appelé quand le serveur reçoit un message du client.
-        Le client peut s'abonner à des types spécifiques d'événements.
+        Appelï¿½ quand le serveur reï¿½oit un message du client.
+        Le client peut s'abonner ï¿½ des types spï¿½cifiques d'ï¿½vï¿½nements.
         """
         try:
             data = json.loads(text_data)
             message_type = data.get('type')
 
             if message_type == 'subscribe':
-                # Le client s'abonne à des types spécifiques
+                # Le client s'abonne ï¿½ des types spï¿½cifiques
                 subscriptions = data.get('topics', [])
                 await self.send(text_data=json.dumps({
                     'type': 'subscription_confirmed',
@@ -61,21 +65,21 @@ class TaskUpdatesConsumer(AsyncWebsocketConsumer):
                 }))
 
             elif message_type == 'ping':
-                # Répondre au ping du client
+                # Rï¿½pondre au ping du client
                 await self.send(text_data=json.dumps({
                     'type': 'pong',
                     'timestamp': datetime.now().isoformat()
                 }))
 
         except json.JSONDecodeError:
-            logger.error(f"Erreur de décodage JSON: {text_data}")
+            logger.error(f"Erreur de dï¿½codage JSON: {text_data}")
         except Exception as e:
             logger.error(f"Erreur lors du traitement du message: {e}")
 
-    # Méthodes pour différents types de notifications
+    # Mï¿½thodes pour diffï¿½rents types de notifications
 
     async def task_created(self, event):
-        """Notifie qu'une nouvelle tâche a été créée"""
+        """Notifie qu'une nouvelle tï¿½che a ï¿½tï¿½ crï¿½ï¿½e"""
         await self.send(text_data=json.dumps({
             'type': 'task_created',
             'task': event['task'],
@@ -83,7 +87,7 @@ class TaskUpdatesConsumer(AsyncWebsocketConsumer):
         }))
 
     async def task_updated(self, event):
-        """Notifie qu'une tâche a été mise à jour"""
+        """Notifie qu'une tï¿½che a ï¿½tï¿½ mise ï¿½ jour"""
         await self.send(text_data=json.dumps({
             'type': 'task_updated',
             'task': event['task'],
@@ -92,7 +96,7 @@ class TaskUpdatesConsumer(AsyncWebsocketConsumer):
         }))
 
     async def task_deleted(self, event):
-        """Notifie qu'une tâche a été supprimée"""
+        """Notifie qu'une tï¿½che a ï¿½tï¿½ supprimï¿½e"""
         await self.send(text_data=json.dumps({
             'type': 'task_deleted',
             'task_id': event['task_id'],
@@ -100,7 +104,7 @@ class TaskUpdatesConsumer(AsyncWebsocketConsumer):
         }))
 
     async def task_stopped(self, event):
-        """Notifie qu'une tâche a été arrêtée"""
+        """Notifie qu'une tï¿½che a ï¿½tï¿½ arrï¿½tï¿½e"""
         await self.send(text_data=json.dumps({
             'type': 'task_stopped',
             'task_id': event['task_id'],
@@ -111,7 +115,7 @@ class TaskUpdatesConsumer(AsyncWebsocketConsumer):
         }))
 
     async def task_resumed(self, event):
-        """Notifie qu'une tâche a été reprise"""
+        """Notifie qu'une tï¿½che a ï¿½tï¿½ reprise"""
         await self.send(text_data=json.dumps({
             'type': 'task_resumed',
             'task_id': event['task_id'],
@@ -121,7 +125,7 @@ class TaskUpdatesConsumer(AsyncWebsocketConsumer):
         }))
 
     async def task_status_changed(self, event):
-        """Notifie qu'un statut de tâche a changé"""
+        """Notifie qu'un statut de tï¿½che a changï¿½"""
         await self.send(text_data=json.dumps({
             'type': 'task_status_changed',
             'task_id': event['task_id'],
@@ -133,7 +137,7 @@ class TaskUpdatesConsumer(AsyncWebsocketConsumer):
         }))
 
     async def workflow_created(self, event):
-        """Notifie qu'un nouveau workflow a été créé"""
+        """Notifie qu'un nouveau workflow a ï¿½tï¿½ crï¿½ï¿½"""
         await self.send(text_data=json.dumps({
             'type': 'workflow_created',
             'workflow': event['workflow'],
@@ -141,7 +145,7 @@ class TaskUpdatesConsumer(AsyncWebsocketConsumer):
         }))
 
     async def workflow_updated(self, event):
-        """Notifie qu'un workflow a été mis à jour"""
+        """Notifie qu'un workflow a ï¿½tï¿½ mis ï¿½ jour"""
         await self.send(text_data=json.dumps({
             'type': 'workflow_updated',
             'workflow': event['workflow'],
@@ -150,7 +154,7 @@ class TaskUpdatesConsumer(AsyncWebsocketConsumer):
         }))
 
     async def workflow_deleted(self, event):
-        """Notifie qu'un workflow a été supprimé"""
+        """Notifie qu'un workflow a ï¿½tï¿½ supprimï¿½"""
         await self.send(text_data=json.dumps({
             'type': 'workflow_deleted',
             'workflow_id': event['workflow_id'],
@@ -158,7 +162,7 @@ class TaskUpdatesConsumer(AsyncWebsocketConsumer):
         }))
 
     async def workflow_stopped(self, event):
-        """Notifie qu'un workflow a été arrêté"""
+        """Notifie qu'un workflow a ï¿½tï¿½ arrï¿½tï¿½"""
         await self.send(text_data=json.dumps({
             'type': 'workflow_stopped',
             'workflow_id': event['workflow_id'],
@@ -170,7 +174,7 @@ class TaskUpdatesConsumer(AsyncWebsocketConsumer):
         }))
 
     async def workflow_resumed(self, event):
-        """Notifie qu'un workflow a été repris"""
+        """Notifie qu'un workflow a ï¿½tï¿½ repris"""
         await self.send(text_data=json.dumps({
             'type': 'workflow_resumed',
             'workflow_id': event['workflow_id'],
@@ -181,7 +185,7 @@ class TaskUpdatesConsumer(AsyncWebsocketConsumer):
         }))
 
     async def workflow_status_changed(self, event):
-        """Notifie qu'un statut de workflow a changé"""
+        """Notifie qu'un statut de workflow a changï¿½"""
         await self.send(text_data=json.dumps({
             'type': 'workflow_status_changed',
             'workflow_id': event['workflow_id'],
@@ -194,12 +198,12 @@ class TaskUpdatesConsumer(AsyncWebsocketConsumer):
 
 class WorkflowUpdatesConsumer(AsyncWebsocketConsumer):
     """
-    Consumer WebSocket spécifique aux workflows.
-    Les clients se connectent à ws://localhost:8001/ws/workflows/ pour recevoir les updates.
+    Consumer WebSocket spï¿½cifique aux workflows.
+    Les clients se connectent ï¿½ ws://localhost:8001/ws/workflows/ pour recevoir les updates.
     """
 
     async def connect(self):
-        """Appelé quand un client WebSocket se connecte"""
+        """Appelï¿½ quand un client WebSocket se connecte"""
         self.group_name = 'workflow_updates'
 
         await self.channel_layer.group_add(
@@ -208,24 +212,24 @@ class WorkflowUpdatesConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
-        logger.info(f"WebSocket Workflow connecté: {self.channel_name}")
+        logger.info(f"WebSocket Workflow connectï¿½: {self.channel_name}")
 
         await self.send(text_data=json.dumps({
             'type': 'connection_established',
-            'message': 'Connecté aux mises à jour des workflows',
+            'message': 'Connectï¿½ aux mises ï¿½ jour des workflows',
             'timestamp': datetime.now().isoformat()
         }))
 
     async def disconnect(self, close_code):
-        """Appelé quand un client WebSocket se déconnecte"""
+        """Appelï¿½ quand un client WebSocket se dï¿½connecte"""
         await self.channel_layer.group_discard(
             self.group_name,
             self.channel_name
         )
-        logger.info(f"WebSocket Workflow déconnecté: {self.channel_name}")
+        logger.info(f"WebSocket Workflow dï¿½connectï¿½: {self.channel_name}")
 
     async def receive(self, text_data):
-        """Reçoit un message du client"""
+        """Reï¿½oit un message du client"""
         try:
             data = json.loads(text_data)
             message_type = data.get('type')
@@ -237,11 +241,11 @@ class WorkflowUpdatesConsumer(AsyncWebsocketConsumer):
                 }))
 
         except json.JSONDecodeError:
-            logger.error(f"Erreur de décodage JSON: {text_data}")
+            logger.error(f"Erreur de dï¿½codage JSON: {text_data}")
         except Exception as e:
             logger.error(f"Erreur lors du traitement du message: {e}")
 
-    # Méthodes de notification (similaires à TaskUpdatesConsumer)
+    # Mï¿½thodes de notification (similaires ï¿½ TaskUpdatesConsumer)
     async def workflow_created(self, event):
         await self.send(text_data=json.dumps({
             'type': 'workflow_created',
