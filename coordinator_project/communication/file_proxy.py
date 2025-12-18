@@ -215,7 +215,8 @@ class FileProxyServer:
                     
                     # Ajouter header custom pour indiquer le routage
                     headers['X-Routed-By'] = 'Coordinator-File-Proxy'
-                    headers['X-Volunteer-Id'] = task_info.get('volunteer_id', 'unknown')
+                    volunteer_id = task_info.get('volunteer_id')
+                    headers['X-Volunteer-Id'] = volunteer_id if volunteer_id else 'unknown'
                     
                     # Mettre à jour les stats
                     self.stats['successful_transfers'] += 1
