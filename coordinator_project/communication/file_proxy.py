@@ -72,7 +72,7 @@ class FileProxyServer:
             await self.runner.cleanup()
         logger.info("Proxy de fichiers arrêté")
     
-    def register_task(self, task_id: str, volunteer_ip: str, volunteer_port: int, volunteer_id: str = None, original_path: str = '/files/'):
+    def register_task(self, task_id: str, volunteer_ip: str, volunteer_port: int, volunteer_id: str = None, original_path: str = '/'):
         """
         Enregistre une tâche pour le routage de fichiers.
         
@@ -81,11 +81,11 @@ class FileProxyServer:
             volunteer_ip: IP du volontaire/manager (vue par le coordinator)
             volunteer_port: Port du serveur de fichiers du volontaire/manager
             volunteer_id: ID du volontaire (optionnel)
-            original_path: Chemin original sur le serveur de fichiers (ex: /files/)
+            original_path: Chemin original sur le serveur de fichiers (ex: / ou /files/)
         """
         # Normaliser le path original
         if not original_path:
-            original_path = '/files/'
+            original_path = '/'
         if not original_path.startswith('/'):
             original_path = '/' + original_path
         if not original_path.endswith('/'):
@@ -178,7 +178,7 @@ class FileProxyServer:
         task_info = self.task_registry[task_id]
         volunteer_ip = task_info['volunteer_ip']
         volunteer_port = task_info['volunteer_port']
-        original_path = task_info.get('original_path', '/files/')
+        original_path = task_info.get('original_path', '/')
         
         # Construire l'URL du volontaire/manager en utilisant le path original
         # original_path se termine par /, donc on concatène directement le filename
