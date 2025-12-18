@@ -1209,12 +1209,13 @@ class AsyncRedisProxy:
         # Extraire l'IP et le port du volontaire
         volunteer_ip = client_id.split(':')[0]  # IP réelle du volontaire
         volunteer_port = file_server_info.get('port')
+        original_path = file_server_info.get('path', '/files/')  # Chemin original sur le volontaire
         
         if not volunteer_port:
             logger.error(f"Pas de port de serveur de fichiers pour la tâche {task_id}")
             return message
         
-        logger.info(f"🔄 Routage de fichiers pour tâche {task_id}: {volunteer_ip}:{volunteer_port}")
+        logger.info(f"🔄 Routage de fichiers pour tâche {task_id}: {volunteer_ip}:{volunteer_port}{original_path}")
         
         # Enregistrer la tâche dans le proxy de fichiers
         if self.file_proxy:
@@ -1222,7 +1223,8 @@ class AsyncRedisProxy:
                 task_id=task_id,
                 volunteer_ip=volunteer_ip,
                 volunteer_port=volunteer_port,
-                volunteer_id=volunteer_id
+                volunteer_id=volunteer_id,
+                original_path=original_path  # Garder le path original
             )
         
         # Remplacer les informations du serveur de fichiers
@@ -1299,9 +1301,11 @@ class AsyncRedisProxy:
                     # Extraire les informations du serveur de fichiers du manager
                     manager_port = file_server.get('port')
                     task_id = task.get('task_id')
+                    # Extraire le chemin original du serveur de fichiers
+                    original_path = file_server.get('path', '/files/')
                     
                     if manager_port and task_id:
-                        logger.info(f"  🔄 Routage pour tâche {task_id}: {manager_ip}:{manager_port}")
+                        logger.info(f"  🔄 Routage pour tâche {task_id}: {manager_ip}:{manager_port} (path: {original_path})")
                         
                         # Enregistrer le mapping dans le proxy de fichiers
                         # Format pour les fichiers d'entrée: input_<workflow_id>
@@ -1312,7 +1316,8 @@ class AsyncRedisProxy:
                                 task_id=proxy_task_id,
                                 volunteer_ip=manager_ip,
                                 volunteer_port=manager_port,
-                                volunteer_id=None  # Pas de volunteer_id pour les fichiers d'entrée
+                                volunteer_id=None,  # Pas de volunteer_id pour les fichiers d'entrée
+                                original_path=original_path  # Passer le chemin original
                             )
                         
                         # Remplacer par les informations du proxy

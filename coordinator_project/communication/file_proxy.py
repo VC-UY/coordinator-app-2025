@@ -72,23 +72,33 @@ class FileProxyServer:
             await self.runner.cleanup()
         logger.info("Proxy de fichiers arrêté")
     
-    def register_task(self, task_id: str, volunteer_ip: str, volunteer_port: int, volunteer_id: str = None):
+    def register_task(self, task_id: str, volunteer_ip: str, volunteer_port: int, volunteer_id: str = None, original_path: str = '/files/'):
         """
         Enregistre une tâche pour le routage de fichiers.
         
         Args:
             task_id: ID de la tâche
-            volunteer_ip: IP du volontaire (vue par le coordinator)
-            volunteer_port: Port du serveur de fichiers du volontaire
+            volunteer_ip: IP du volontaire/manager (vue par le coordinator)
+            volunteer_port: Port du serveur de fichiers du volontaire/manager
             volunteer_id: ID du volontaire (optionnel)
+            original_path: Chemin original sur le serveur de fichiers (ex: /files/)
         """
+        # Normaliser le path original
+        if not original_path:
+            original_path = '/files/'
+        if not original_path.startswith('/'):
+            original_path = '/' + original_path
+        if not original_path.endswith('/'):
+            original_path += '/'
+            
         self.task_registry[task_id] = {
             'volunteer_ip': volunteer_ip,
             'volunteer_port': volunteer_port,
             'volunteer_id': volunteer_id,
+            'original_path': original_path,  # Chemin sur le serveur distant
             'registered_at': time.time()
         }
-        logger.info(f"📝 Tâche {task_id} enregistrée: {volunteer_ip}:{volunteer_port}")
+        logger.info(f"📝 Tâche {task_id} enregistrée: {volunteer_ip}:{volunteer_port}{original_path}")
     
     def unregister_task(self, task_id: str):
         """Désenregistre une tâche"""
@@ -168,9 +178,11 @@ class FileProxyServer:
         task_info = self.task_registry[task_id]
         volunteer_ip = task_info['volunteer_ip']
         volunteer_port = task_info['volunteer_port']
+        original_path = task_info.get('original_path', '/files/')
         
-        # Construire l'URL du volontaire
-        volunteer_url = f"http://{volunteer_ip}:{volunteer_port}/files/{filename}"
+        # Construire l'URL du volontaire/manager en utilisant le path original
+        # original_path se termine par /, donc on concatène directement le filename
+        volunteer_url = f"http://{volunteer_ip}:{volunteer_port}{original_path}{filename}"
         
         logger.info(f"🔄 Routage: {volunteer_url}")
         
