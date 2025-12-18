@@ -23,7 +23,7 @@ if not logger.handlers:
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
     logger.addHandler(console_handler)
-    logger.setLevel(logging.INFO)  # Définir le niveau de log à INFO
+    logger.setLevel(logging.DEBUG)  # Définir le niveau de log à DEBUG
 
 class RedisClient:
     """
@@ -127,6 +127,14 @@ class RedisClient:
             )
             self.listen_thread.daemon = True
             self.listen_thread.start()
+            
+            # Démarrer le thread de heartbeat pour maintenir la connexion active
+            self.heartbeat_thread = threading.Thread(
+                target=self._heartbeat_loop,
+                name=f"RedisHeartbeat-{self.client_id[:8]}"
+            )
+            self.heartbeat_thread.daemon = True
+            self.heartbeat_thread.start()
             
             logger.info(f"Client Redis démarré: {self.client_type}:{self.client_id}")
             return True
@@ -307,6 +315,25 @@ class RedisClient:
             logger.error(f"Erreur lors de la publication sur {channel}: {e}")
             raise ChannelError(f"Erreur de publication: {e}")
     
+    def _heartbeat_loop(self):
+        """
+        Boucle de heartbeat pour maintenir la connexion active.
+        Envoie un PING toutes les 60 secondes pour éviter le nettoyage par timeout.
+        """
+        while self.running:
+            try:
+                # Envoyer un PING
+                self.redis.ping()
+                self.stats['last_activity'] = time.time()
+                logger.debug(f"Heartbeat PING envoyé")
+            except redis.ConnectionError as e:
+                logger.warning(f"Erreur de connexion pendant heartbeat: {e}")
+            except Exception as e:
+                logger.error(f"Erreur heartbeat: {e}")
+            
+            # Attendre 60 secondes avant le prochain heartbeat
+            time.sleep(60)
+    
     def _listen_loop(self):
         """
         Boucle d'écoute des messages dans un thread séparé.
@@ -329,7 +356,7 @@ class RedisClient:
                     
                     try:
                         # Logs pour déboguer le problème de parsing
-                        # logger.info(f"Message brut reçu sur {channel}: {data}")
+                        logger.info(f"📩 Message brut reçu sur {channel}: {data[:200] if len(str(data)) > 200 else data}")
                         
                         # Décoder le message
                         msg_obj = Message.from_json(data)

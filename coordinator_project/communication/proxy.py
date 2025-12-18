@@ -519,7 +519,7 @@ class AsyncRedisProxy:
             'test/integrity/medium': True,
             'test/integrity/large': True,
             'test/integrity/mixed': True,
-            'test/performance/#': True,
+            'test/heartbeat': True,
         }
         
         self.manager_channels = {
@@ -542,6 +542,7 @@ class AsyncRedisProxy:
             'task/status': True, 
             'task/complete': True,
             'task/progress': True,
+            'volunteer_state': True,  # Canal pour l'envoi de l'état/métriques du volontaire
         }
         
         # Transformateurs de messages
@@ -685,14 +686,21 @@ class AsyncRedisProxy:
         try:
             while self.running:
                 try:
-                    # CORRECTION: Lecture adaptative pour éviter la corruption des gros messages
-                    # Lire par plus gros chunks et s'assurer de la complétude des messages RESP
+                    # CORRECTION: Timeout plus long pour les clients PubSub (qui restent en écoute passive)
+                    # Les clients PubSub peuvent ne pas envoyer de données pendant longtemps
+                    # Le heartbeat est géré séparément par le PubSubManager
+                    read_timeout = 300.0 if client_data.subscriptions else 60.0  # 5 min pour PubSub, 1 min sinon
+                    
                     data = await asyncio.wait_for(
                         reader.read(65536),  # 64KB chunks pour les gros messages
-                        timeout=30.0
+                        timeout=read_timeout
                     )
                     
                     if not data:
+                        # Ne pas déconnecter les clients PubSub sur timeout de lecture
+                        if client_data.subscriptions:
+                            logger.debug(f"Client PubSub {client_id} - lecture vide mais gardé connecté (abonnements: {len(client_data.subscriptions)})")
+                            continue
                         logger.debug(f"Client {client_id} déconnecté (pas de données)")
                         break
                     
@@ -730,7 +738,14 @@ class AsyncRedisProxy:
                         parser.position = 0
                 
                 except asyncio.TimeoutError:
-                    # Ping pour maintenir la connexion
+                    # Pour les clients PubSub, le timeout est normal - ils sont en écoute passive
+                    if client_data.subscriptions:
+                        logger.debug(f"Client PubSub {client_id} - timeout de lecture normal, connexion maintenue")
+                        # Mettre à jour l'activité pour éviter le nettoyage
+                        client_data.last_activity = time.time()
+                        continue
+                    
+                    # Pour les autres clients, envoyer un ping pour maintenir la connexion
                     try:
                         writer.write(b"+PONG\r\n")
                         await writer.drain()
@@ -1106,7 +1121,7 @@ class AsyncRedisProxy:
                 logger.error(f"Erreur monitoring: {e}")
 
     async def cleanup_inactive_clients(self):
-        """Nettoie les clients inactifs"""
+        """Nettoie les clients inactifs - MAIS pas les clients PubSub avec abonnements actifs"""
         while self.running:
             try:
                 await asyncio.sleep(300)  # Toutes les 5 minutes
@@ -1115,6 +1130,12 @@ class AsyncRedisProxy:
                 inactive_clients = []
                 
                 for client_id, client_data in list(self.clients.items()):
+                    # Ne PAS nettoyer les clients PubSub qui ont des abonnements actifs
+                    # Ces clients sont en mode écoute passive et peuvent rester inactifs longtemps
+                    if client_data.subscriptions:
+                        logger.debug(f"Client PubSub {client_id} conservé (abonnements: {len(client_data.subscriptions)})")
+                        continue
+                    
                     if current_time - client_data.last_activity > 600:  # 10 minutes
                         inactive_clients.append(client_id)
                 

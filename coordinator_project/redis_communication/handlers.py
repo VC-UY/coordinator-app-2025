@@ -99,6 +99,17 @@ def is_machine_already_registered(machine_info: Dict[str, Any]) -> Optional[Volu
     if not machine_info:
         return None
     
+    # Approche 0: Recherche par adresse MAC (identifiant unique et stable)
+    if 'adresse_mac' in machine_info and machine_info['adresse_mac']:
+        mac_address = machine_info['adresse_mac']
+        logger.debug(f"Recherche de machine par adresse MAC: {mac_address}")
+        volunteer = Volunteer.objects(machine_info__adresse_mac=mac_address).first()
+        if volunteer:
+            logger.info(f"Machine identifiée par adresse MAC: {volunteer.name} (ID: {volunteer.id})")
+            return volunteer
+        else:
+            logger.debug(f"Aucune machine trouvée avec l'adresse MAC: {mac_address}")
+    
     # Approche 1: Recherche par caractéristiques matérielles spécifiques
     # Critères d'identification de la machine
     primary_criteria = {}
@@ -110,11 +121,20 @@ def is_machine_already_registered(machine_info: Dict[str, Any]) -> Optional[Volu
     # CPU - Type et nombre de coeurs (très stable)
     if 'cpu' in machine_info:
         cpu_info = machine_info['cpu']
-        if 'type' in cpu_info and cpu_info['type']:
-            primary_criteria['cpu_model'] = cpu_info['type']
+        if 'modele' in cpu_info and cpu_info['modele']:
+            primary_criteria['machine_info__cpu__modele'] = cpu_info['modele']
             criteria_count += 1
         if 'coeurs_physiques' in cpu_info:
-            primary_criteria['cpu_cores'] = cpu_info['coeurs_physiques']
+            primary_criteria['machine_info__cpu__coeurs_physiques'] = cpu_info['coeurs_physiques']
+            criteria_count += 1
+        if 'coeurs_logiques' in cpu_info:
+            primary_criteria['machine_info__cpu__coeurs_logiques'] = cpu_info['coeurs_logiques']
+            criteria_count += 1
+        if 'frequence' in cpu_info and 'min' in cpu_info['frequence']:
+            primary_criteria['machine_info__cpu__frequence__min'] = cpu_info['frequence']['min']
+            criteria_count += 1
+        if 'frequence' in cpu_info and 'max' in cpu_info['frequence']:
+            primary_criteria['machine_info__cpu__frequence__max'] = cpu_info['frequence']['max']
             criteria_count += 1
     
     # Architecture du système (très stable)
@@ -123,31 +143,32 @@ def is_machine_already_registered(machine_info: Dict[str, Any]) -> Optional[Volu
         if arch:
             primary_criteria['machine_info__os__architecture'] = arch
             criteria_count += 1
+        if 'nom' in machine_info['os']:
+            primary_criteria['machine_info__os__nom'] = machine_info['os']['nom']
+            criteria_count += 1
     
     # RAM totale (très stable)
     if 'memoire' in machine_info and 'ram' in machine_info['memoire']:
         ram_info = machine_info['memoire']['ram']
         if 'total' in ram_info:
-            # Convertir en MB si nécessaire
-            ram_total = ram_info['total']
-            if isinstance(ram_total, str) and 'GB' in ram_total:
-                try:
-                    ram_mb = float(ram_total.replace('GB', '').strip()) * 1024
-                    primary_criteria['total_ram'] = ram_mb
-                    criteria_count += 1
-                except ValueError:
-                    pass
+            primary_criteria['machine_info__memoire__ram__total'] = ram_info['total']
+            criteria_count += 1
+        
+        ram_info = machine_info['memoire']['cache']
+        if 'total' in ram_info:
+            primary_criteria['machine_info__memoire__cache__total'] = ram_info['total']
+            criteria_count += 1
+        
+        ram_info = machine_info['memoire']['swap']
+        if 'total' in ram_info:
+            primary_criteria['machine_info__memoire__swap__total'] = ram_info['total']
+            criteria_count += 1
     
     # Disque total (très stable)
     if 'disque' in machine_info and 'total' in machine_info['disque']:
         disk_total = machine_info['disque']['total']
-        if isinstance(disk_total, str) and 'GB' in disk_total:
-            try:
-                disk_gb = float(disk_total.replace('GB', '').strip())
-                primary_criteria['available_storage'] = disk_gb
-                criteria_count += 1
-            except ValueError:
-                pass
+        primary_criteria['machine_info__disque__total'] = disk_total
+        criteria_count += 1
     
     # Caractéristiques secondaires (peuvent changer, mais rarement)
     # Nom d'hôte
@@ -156,33 +177,31 @@ def is_machine_already_registered(machine_info: Dict[str, Any]) -> Optional[Volu
         if hostname:
             secondary_criteria['name__contains'] = hostname
     
-    # OS (nom et version)
-    if 'os' in machine_info:
-        os_info = machine_info['os']
-        os_string = f"{os_info.get('nom', '')} {os_info.get('version', '')}".strip()
-        if os_string:
-            secondary_criteria['operating_system'] = os_string
-    
-    # Fréquence CPU
-    if 'cpu' in machine_info and 'frequence' in machine_info['cpu']:
-        freq_info = machine_info['cpu']['frequence']
-        if 'max' in freq_info:
-            secondary_criteria['machine_info__cpu__frequence__max'] = freq_info['max']
-    
     # Carte mère et BIOS
-    if 'bios_carte_mere' in machine_info:
-        secondary_criteria['machine_info__bios_carte_mere'] = machine_info['bios_carte_mere']
+    if 'bios_carte_mere' in machine_info and 'BIOS' in machine_info['bios_carte_mere'] and 'Fabricant' in  machine_info['bios_carte_mere']['BIOS']:
+        primary_criteria['machine_info__bios_carte_mere__BIOS__Fabricant'] = machine_info['bios_carte_mere']['BIOS']['Fabricant']
+        criteria_count += 1
+    
+    if 'bios_carte_mere' in machine_info and 'mother_board' in machine_info['bios_carte_mere'] and 'Fabricant' in  machine_info['bios_carte_mere']['mother_board']:
+        primary_criteria['machine_info__bios_carte_mere__mother_board__Fabricant'] = machine_info['bios_carte_mere']['mother_board']['Modele']
+        criteria_count += 1
+    
     
     # Recherche avec les critères primaires (très stables)
-    if criteria_count >= 3:
+    if criteria_count >= 10:
         logger.debug(f"Recherche de machine avec critères primaires: {primary_criteria}")
         volunteer = Volunteer.objects(**primary_criteria).first()
         if volunteer:
             logger.info(f"Machine identifiée par caractéristiques matérielles primaires: {volunteer.name} (ID: {volunteer.id})")
             return volunteer
+        else: 
+            logger.debug(f"Aucune machine trouvée avec {criteria_count} critères primaires seuls")
+            logger.debug("Essai 1 critère primaire ")
+            v = Volunteer.objects(**{'machine_info__cpu__coeurs_physiques': 2})
+            logger.debug(f"Resultats: {[vv.to_mongo().to_dict() for vv in v]}")
     
     # Si aucune correspondance avec les critères primaires, essayer avec une combinaison de primaires et secondaires
-    if criteria_count >= 2 and secondary_criteria:
+    if criteria_count >= 8 and secondary_criteria:
         combined_criteria = {**primary_criteria, **secondary_criteria}
         logger.debug(f"Recherche de machine avec critères combinés: {combined_criteria}")
         volunteer = Volunteer.objects(**combined_criteria).first()

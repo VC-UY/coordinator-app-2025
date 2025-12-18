@@ -89,28 +89,7 @@ def workflow_submission_handler(channel: str, message: Message):
         # Si aucun volontaire n'est disponible, utiliser des données de test
         if not assigned_volunteers:
             logger.warning("Aucun volontaire disponible dans la base de données, utilisation de données de test")
-            assigned_volunteers = [
-                {
-                    "volunteer_id": str(uuid.uuid4()),
-                    "username": "volunteer1_test",
-                    "resources": {
-                        "cpu_cores": 1,
-                        "memory_mb": 1024,
-                        "disk_space_mb": 1024,
-                        "gpu": False
-                    }
-                },
-                {
-                    "volunteer_id": str(uuid.uuid4()),
-                    "username": "volunteer2_test",
-                    "resources": {
-                        "cpu_cores": 2,
-                        "memory_mb": 2048,
-                        "disk_space_mb": 2000,
-                        "gpu": False
-                    }
-                }
-            ] 
+            assigned_volunteers = [] 
         else:
             logger.error(f"Utilisation de {assigned_volunteers} volontaires réels pour le workflow")
         

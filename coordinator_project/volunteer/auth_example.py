@@ -45,7 +45,7 @@ def get_system_info():
         'gpu_model': None,
         'gpu_memory': None,
         'ip_address': ip_address,
-        'communication_port': 8000  # Port par défaut
+        'communication_port': 8002  # Port du volontaire
     }
 
 def register_callback(response):
