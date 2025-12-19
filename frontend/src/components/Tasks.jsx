@@ -45,7 +45,12 @@ const Tasks = () => {
   useEffect(() => {
     // Connexion WebSocket pour les mises à jour en temps réel
     const connectWebSocket = () => {
-      const ws = new WebSocket('ws://localhost:8001/ws/tasks/');
+      // Déterminer l'URL WebSocket en fonction de l'environnement
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsHost = import.meta.env.PROD ? window.location.host : 'localhost:8001';
+      const wsUrl = `${wsProtocol}//${wsHost}/ws/tasks/`;
+
+      const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
         console.log('WebSocket connecté');
