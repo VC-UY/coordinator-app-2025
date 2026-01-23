@@ -14,6 +14,27 @@ from manager.models import Task, TaskAssignment
 
 logger = logging.getLogger(__name__)
 
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+
+def _notify_frontend(event_type, data):
+    """
+    Envoie une notification via WebSocket au frontend.
+    """
+    try:
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            async_to_sync(channel_layer.group_send)(
+                "tasks_updates",
+                {
+                    "type": event_type,
+                    **data
+                }
+            )
+            logger.debug(f"Notification WS envoyée: {event_type} pour {data.get('task_id', 'unknown')}")
+    except Exception as e:
+        logger.error(f"Erreur lors de l'envoi de la notification WS: {e}")
+
 def handle_task_created(channel: str, message: Message):
     """
     Gestionnaire pour l'événement de création d'une tâche par le Manager.
@@ -61,6 +82,16 @@ def handle_task_created(channel: str, message: Message):
         )
         task.save()
 
+        # Notifier le frontend
+        _notify_frontend('task_created', {
+            'task': {
+                'id': str(task.id),
+                'name': task.name,
+                'status': task.status,
+                'workflow': str(workflow.id)
+            }
+        })
+
         logger.info(f"Tâche {task_id} ({task_name}) créée pour le workflow {workflow_id}")
 
     except Exception as e:
@@ -96,6 +127,15 @@ def handle_task_started(channel: str, message: Message):
         task.status = 'RUNNING'
         task.start_time = datetime.now(timezone.utc)
         task.save()
+
+        # Notifier le frontend
+        _notify_frontend('task_status_changed', {
+            'task_id': str(task_id),
+            'task_name': task.name,
+            'old_status': 'PENDING',
+            'new_status': 'RUNNING',
+            'progress': task.progress
+        })
 
         logger.info(f"Tâche {task_id} démarrée par le volontaire {volunteer_id}")
 
@@ -139,6 +179,15 @@ def handle_task_progress(channel: str, message: Message):
             task.save()
             
             logger.info(f"Progression mise à jour - Tâche: {task_id}, Progrès: {progress}%")
+            
+            # Notifier le frontend
+            _notify_frontend('task_status_changed', {
+                'task_id': str(task_id),
+                'task_name': task.name,
+                'old_status': task.status,  # Status actuel (peut être inchangé)
+                'new_status': task.status,
+                'progress': progress
+            })
             
         except TaskAssignment.DoesNotExist:
             # Créer une nouvelle assignation si elle n'existe pas
@@ -208,6 +257,15 @@ def handle_task_completed(channel: str, message: Message):
         task.end_time = now
         task.results = results
         task.save()
+
+        # Notifier le frontend
+        _notify_frontend('task_status_changed', {
+            'task_id': str(task_id),
+            'task_name': task.name,
+            'old_status': 'RUNNING',
+            'new_status': 'COMPLETED',
+            'progress': 100
+        })
 
         # Mettre à jour le score du volontaire
         update_volunteer_score(volunteer_id, 'completed', task_id)

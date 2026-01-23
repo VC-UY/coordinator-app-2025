@@ -532,6 +532,7 @@ class AsyncRedisProxy:
             'workflow/submit_response': True,
             'workflow/terminate': True,
             'task/reassignment': True,
+            'task/completed': True,
         }
         
         self.volunteer_channels = {

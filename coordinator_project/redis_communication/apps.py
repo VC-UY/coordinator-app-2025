@@ -43,6 +43,7 @@ class RedisCommunicationConfig(AppConfig):
         # Importer ici pour éviter les imports circulaires
         from .client import RedisClient
         from .channels import register_handlers
+        from .logging_handlers import log_all_messages
         
         # Initialiser le client Redis
         client = RedisClient.get_instance()
@@ -74,6 +75,23 @@ class RedisCommunicationConfig(AppConfig):
         except Exception as e:
             logger.error(f"Erreur lors de l'enregistrement des gestionnaires de statut des tâches: {e}")
         
+        except Exception as e:
+            logger.error(f"Erreur lors de l'enregistrement des gestionnaires de statut des tâches: {e}")
+
+        # Enregistrer le logger pour tous les canaux critiques
+        CHANNELS_TO_LOG = [
+            'task/created', 'task/started', 'task/progress', 'task/completed',
+            'task/failed', 'task/paused', 'task/resumed', 'task/timeout',
+            'task/status', 'task/assignment',
+            'workflow/created', 'workflow/updated', 'workflow/deleted',
+            'workflow/status_changed', 'workflow/stopped', 'workflow/resumed',
+            'auth/register', 'manager/status', 'manager/disconnect'
+        ]
+        
+        for channel in CHANNELS_TO_LOG:
+            client.subscribe(channel, log_all_messages)
+        logger.info(f"Logger universel enregistré sur {len(CHANNELS_TO_LOG)} canaux")
+
         logger.info("Application redis_communication initialisée")
         logger.info(f"Canaux enregistrés: {list(client.handlers.keys())}")
         
