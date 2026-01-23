@@ -16,11 +16,11 @@ function Workflows() {
 
   const fetchData = async () => {
     try {
-      const wfRes = await AxiosInstance.get('api/workflows/');
+      const wfRes = await AxiosInstance.get('workflows/');
       const workflowsWithTasks = await Promise.all(
         wfRes.data.map(async (wf) => {
           try {
-            const tasksRes = await AxiosInstance.get(`api/tasks/?workflow=${wf.id}`);
+            const tasksRes = await AxiosInstance.get(`tasks/?workflow=${wf.id}`);
             const filteredTasks = Array.isArray(tasksRes.data)
               ? tasksRes.data.filter(task => String(task.workflow) === String(wf.id))
               : [];

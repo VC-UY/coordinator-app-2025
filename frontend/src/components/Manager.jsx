@@ -10,7 +10,7 @@ const Manager = () => {
   const [myData, setMyData] = useState([]);
 
   const fetchData = () => {
-    AxiosInstance.get(`api/managers/`).then((res) => {
+    AxiosInstance.get(`managers/`).then((res) => {
       setMyData(res.data);
     }).catch(error => {
       console.error("Error fetching managers:", error);
@@ -27,13 +27,13 @@ const Manager = () => {
 
   const handleDelete = (id) => {
     if(window.confirm('Are you sure you want to delete this manager?')){
-      AxiosInstance.delete(`api/managers/${id}/`).then(() => fetchData());
+      AxiosInstance.delete(`managers/${id}/`).then(() => fetchData());
     }
   };
 
   const handleToggleStatus = (manager) => {
     const newStatus = manager.status === 'active' ? 'suspended' : 'active';
-    AxiosInstance.patch(`api/managers/${manager.id}/`, { status: newStatus })
+    AxiosInstance.patch(`managers/${manager.id}/`, { status: newStatus })
       .then(() => fetchData());
     console.log(`Manager ${manager.id} ${manager.username} status changed to ${newStatus}`);
   };

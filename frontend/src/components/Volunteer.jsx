@@ -20,7 +20,7 @@ const Volunteer = () =>{
     const [deleteId, setDeleteId] = useState(null);
 
     const fetchData = () => {
-      AxiosInstance.get(`api/volunteers/`).then((res) => {
+      AxiosInstance.get(`volunteers/`).then((res) => {
         setMyData(res.data);
       }).catch(error => {
         console.error("Error fetching volunteers:", error);
@@ -154,7 +154,7 @@ const Volunteer = () =>{
     const handleDelete = (id) => {
         setDeleteId(id);
         if(window.confirm('Are you sure you want to delete this volunteer?')){
-            AxiosInstance.delete(`api/volunteers/${id}/`).then(() => fetchData())
+            AxiosInstance.delete(`volunteers/${id}/`).then(() => fetchData())
                 .catch(error => {
                     console.error("Error deleting volunteer:", error);
                 });

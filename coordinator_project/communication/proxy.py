@@ -1209,12 +1209,13 @@ class AsyncRedisProxy:
         # Extraire l'IP et le port du volontaire
         volunteer_ip = client_id.split(':')[0]  # IP réelle du volontaire
         volunteer_port = file_server_info.get('port')
+        original_path = file_server_info.get('path', '/')  # Chemin original sur le volontaire
         
         if not volunteer_port:
             logger.error(f"Pas de port de serveur de fichiers pour la tâche {task_id}")
             return message
         
-        logger.info(f"🔄 Routage de fichiers pour tâche {task_id}: {volunteer_ip}:{volunteer_port}")
+        logger.info(f"🔄 Routage de fichiers pour tâche {task_id}: {volunteer_ip}:{volunteer_port}{original_path}")
         
         # Enregistrer la tâche dans le proxy de fichiers
         if self.file_proxy:
@@ -1222,7 +1223,8 @@ class AsyncRedisProxy:
                 task_id=task_id,
                 volunteer_ip=volunteer_ip,
                 volunteer_port=volunteer_port,
-                volunteer_id=volunteer_id
+                volunteer_id=volunteer_id,
+                original_path=original_path  # Garder le path original
             )
         
         # Remplacer les informations du serveur de fichiers
@@ -1234,11 +1236,13 @@ class AsyncRedisProxy:
         message_copy['file_server'] = {
             'host': coordinator_host,
             'port': coordinator_file_port,
+            'base_url': f'http://{coordinator_host}:{coordinator_file_port}',  # URL complète pour le volunteer
             'path': f'/files/{task_id}/',
             'output_files': file_server_info.get('output_files', []),
             # Garder les infos originales pour debug
             '_original_host': file_server_info.get('host'),
             '_original_port': volunteer_port,
+            '_original_base_url': file_server_info.get('base_url'),
             '_routed_by': 'coordinator_file_proxy'
         }
         
@@ -1299,9 +1303,11 @@ class AsyncRedisProxy:
                     # Extraire les informations du serveur de fichiers du manager
                     manager_port = file_server.get('port')
                     task_id = task.get('task_id')
+                    # Extraire le chemin original du serveur de fichiers
+                    original_path = file_server.get('path', '/')
                     
                     if manager_port and task_id:
-                        logger.info(f"  🔄 Routage pour tâche {task_id}: {manager_ip}:{manager_port}")
+                        logger.info(f"  🔄 Routage pour tâche {task_id}: {manager_ip}:{manager_port} (path: {original_path})")
                         
                         # Enregistrer le mapping dans le proxy de fichiers
                         # Format pour les fichiers d'entrée: input_<workflow_id>
@@ -1312,7 +1318,8 @@ class AsyncRedisProxy:
                                 task_id=proxy_task_id,
                                 volunteer_ip=manager_ip,
                                 volunteer_port=manager_port,
-                                volunteer_id=None  # Pas de volunteer_id pour les fichiers d'entrée
+                                volunteer_id=None,  # Pas de volunteer_id pour les fichiers d'entrée
+                                original_path=original_path  # Passer le chemin original
                             )
                         
                         # Remplacer par les informations du proxy
@@ -1345,17 +1352,50 @@ class AsyncRedisProxy:
     def get_coordinator_public_address(self):
         """
         Retourne l'adresse publique du coordinator.
-        Dans un environnement de production, cela devrait être configuré.
+        Utilise plusieurs méthodes pour obtenir une IP valide (pas 127.x.x.x).
         """
-        # TODO: Configurer l'adresse publique du coordinator
-        # Pour le moment, utiliser l'IP de la machine
+        import os
+        import socket
+
+        # 1. Vérifier si une IP publique est configurée via variable d'environnement
+        public_ip = os.environ.get('COORDINATOR_PUBLIC_IP')
+        if public_ip:
+            logger.debug(f"IP publique depuis env: {public_ip}")
+            return public_ip
+
+        # 2. Essayer d'obtenir l'IP depuis les settings Django
         try:
-            import socket
+            from django.conf import settings
+            if hasattr(settings, 'COORDINATOR_PUBLIC_IP') and settings.COORDINATOR_PUBLIC_IP:
+                logger.debug(f"IP publique depuis settings: {settings.COORDINATOR_PUBLIC_IP}")
+                return settings.COORDINATOR_PUBLIC_IP
+        except:
+            pass
+
+        # 3. Méthode fiable: se connecter à une adresse externe pour trouver l'IP locale
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            # On ne se connecte pas vraiment, on utilise juste pour trouver l'interface
+            s.connect(("8.8.8.8", 80))
+            local_ip = s.getsockname()[0]
+            s.close()
+            if not local_ip.startswith('127.'):
+                logger.debug(f"IP locale depuis socket: {local_ip}")
+                return local_ip
+        except Exception as e:
+            logger.warning(f"Impossible d'obtenir l'IP via socket: {e}")
+
+        # 4. Fallback: hostname (peut retourner 127.x.x.x)
+        try:
             hostname = socket.gethostname()
             local_ip = socket.gethostbyname(hostname)
-            return local_ip
+            if not local_ip.startswith('127.'):
+                return local_ip
         except:
-            return 'localhost'
+            pass
+
+        logger.warning("Impossible de déterminer l'IP publique, utilisation de localhost")
+        return 'localhost'
     
     def filter_sensitive_data(self, client_id, channel, message, user_id=None, role=None):
         """Filtre les données sensibles des messages"""

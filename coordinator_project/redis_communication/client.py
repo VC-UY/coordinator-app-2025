@@ -268,11 +268,9 @@ class RedisClient:
         try:
             # Sérialiser le message
             json_message = message.to_json()
-            
-            # Augmenter la taille maximale du message si nécessaire
-            if len(json_message) > int(self.redis.config_get('proto-max-bulk-len').get('proto-max-bulk-len', 512 * 1024)):
-                self.redis.config_set('proto-max-bulk-len', len(json_message) + 9097152)
-           
+
+            # Note: config_get/config_set supprimés car non supportés par le proxy Redis custom
+
             # Publier sur Redis
             self.redis.publish(channel, json_message)
             self.stats['messages_sent'] += 1
