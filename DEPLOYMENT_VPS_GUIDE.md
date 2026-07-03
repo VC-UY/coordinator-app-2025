@@ -85,7 +85,7 @@ cd /opt/coordinator
 ### 2. Cloner ou Copier l'Application
 ```bash
 # Option A: Via Git
-git clone https://github.com/votre-repo/coordinator-app.git .
+git clone https://github.com/vc-uy/coordinator-app.git .
 
 # Option B: Via SCP depuis votre machine locale
 # Sur votre machine locale:

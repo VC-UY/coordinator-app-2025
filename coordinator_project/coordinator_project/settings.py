@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+import os
+
+from vcuy_env import env_bool, env_list
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,12 +24,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-@tjxa*z5ko6raxm0re8vuo6e(6^6wm#po$pok(u1=w4b-#y6(z'
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-dev-only-change-in-production',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool('DJANGO_DEBUG', True)
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1') if not DEBUG else ['*']
 
 
 # Application definition
@@ -168,11 +174,11 @@ REDIS_PORT = 6379
 REDIS_DB = 0
 
 # Redis proxy settings
-REDIS_PROXY_HOST = 'localhost'
-REDIS_PORT_FOR_PROXY = 6379
-REDIS_PROXY_PORT = 6380
+REDIS_PROXY_HOST = os.environ.get('REDIS_PROXY_HOST', 'localhost')
+REDIS_PORT_FOR_PROXY = int(os.environ.get('REDIS_PORT', '6379'))
+REDIS_PROXY_PORT = int(os.environ.get('REDIS_PROXY_PORT', '6380'))
 REDIS_PROXY_DB = 0
-USE_REDIS_PROXY = False  
+USE_REDIS_PROXY = env_bool('USE_REDIS_PROXY', False)
 
 # Redis for channel layers (message broker)
 CHANNEL_LAYERS = {
@@ -185,16 +191,16 @@ CHANNEL_LAYERS = {
 }
 
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = DEBUG
 CORS_ALLOW_CREDENTIALS = True
 
 # MongoDB settings
 # Configuration des paramètres de base
-MONGODB_HOST = 'localhost'
-MONGODB_PORT = 27017
-MONGODB_NAME = 'coordinator_db'
-MONGODB_USERNAME = ''
-MONGODB_PASSWORD = ''
+MONGODB_HOST = os.environ.get('MONGODB_HOST', 'localhost')
+MONGODB_PORT = int(os.environ.get('MONGODB_PORT', '27017'))
+MONGODB_NAME = os.environ.get('MONGODB_NAME', 'coordinator_db')
+MONGODB_USERNAME = os.environ.get('MONGODB_USERNAME', '')
+MONGODB_PASSWORD = os.environ.get('MONGODB_PASSWORD', '')
 
 # Construction de la chaîne de connexion URI
 # Format: mongodb://[username:password@]host[:port]/database
@@ -246,9 +252,20 @@ else:
 
 
 import logging
-logging.basicConfig(level=logging.DEBUG)
+
+logging.basicConfig(level=logging.DEBUG if DEBUG else logging.INFO)
+
+# REST Framework — les ViewSets gardent leurs permissions explicites
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+}
 logger = logging.getLogger('redis_communication')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.DEBUG if DEBUG else logging.INFO)
 # Suppress MongoDB debug logs
 logging.getLogger('pymongo').setLevel(logging.WARNING)
 logging.getLogger('mongoengine').setLevel(logging.WARNING)
