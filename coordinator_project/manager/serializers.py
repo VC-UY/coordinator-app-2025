@@ -90,7 +90,26 @@ class WorkflowSerializer(serializers.Serializer):
         instance.save()
         return instance
 
-# Serializer DRF pour le modèle Task (MongoEngine)
+    def to_representation(self, instance):
+        owner = getattr(instance, 'owner', None)
+        return {
+            'id': str(instance.id),
+            'name': instance.name,
+            'description': getattr(instance, 'description', '') or '',
+            'workflow_type': instance.workflow_type,
+            'status': instance.status,
+            'created_at': instance.created_at,
+            'updated_at': instance.updated_at,
+            'submitted_at': getattr(instance, 'submitted_at', None),
+            'completed_at': getattr(instance, 'completed_at', None),
+            'priority': getattr(instance, 'priority', 0),
+            'estimated_resources': getattr(instance, 'estimated_resources', {}) or {},
+            'tags': getattr(instance, 'tags', []) or [],
+            'metadata': getattr(instance, 'metadata', {}) or {},
+            'owner': str(owner.id) if owner else None,
+            'owner_username': owner.username if owner else None,
+            'owner_email': owner.email if owner else None,
+        }
 class TaskSerializer(serializers.Serializer):
     id = serializers.UUIDField(read_only=True)
     workflow = serializers.CharField()  # UUID du workflow
@@ -134,3 +153,33 @@ class TaskSerializer(serializers.Serializer):
                 setattr(instance, attr, value)
         instance.save()
         return instance
+
+    def to_representation(self, instance):
+        workflow = getattr(instance, 'workflow', None)
+        volunteer = getattr(instance, 'assigned_to', None)
+        owner = getattr(workflow, 'owner', None) if workflow else None
+        return {
+            'id': str(instance.id),
+            'workflow': str(workflow.id) if workflow else None,
+            'workflow_name': workflow.name if workflow else None,
+            'owner': str(owner.id) if owner else None,
+            'owner_username': owner.username if owner else None,
+            'owner_email': owner.email if owner else None,
+            'name': instance.name,
+            'description': getattr(instance, 'description', '') or '',
+            'command': getattr(instance, 'command', '') or '',
+            'dependencies': getattr(instance, 'dependencies', []) or [],
+            'status': instance.status,
+            'is_subtask': getattr(instance, 'is_subtask', False),
+            'progress': getattr(instance, 'progress', 0) or 0,
+            'created_at': instance.created_at,
+            'start_time': getattr(instance, 'start_time', None),
+            'end_time': getattr(instance, 'end_time', None),
+            'required_resources': getattr(instance, 'required_resources', {}) or {},
+            'assigned_to': str(volunteer.id) if volunteer else None,
+            'assigned_to_name': volunteer.username if volunteer else None,
+            'attempts': getattr(instance, 'attempts', 0),
+            'results': getattr(instance, 'results', None),
+            'error_details': getattr(instance, 'error_details', None),
+            'docker_image': getattr(instance, 'docker_image', None),
+        }
