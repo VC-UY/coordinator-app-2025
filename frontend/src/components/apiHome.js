@@ -67,3 +67,38 @@ export const fetchCommunicationStats = async () => {
   const res = await AxiosInstance.get('stats/');
   return res.data || {};
 };
+
+export const fetchSystemHealth = async () => {
+  const res = await AxiosInstance.get('system-health/');
+  return res.data || {};
+};
+
+export const fetchWorkflowsByStatus = async () => {
+  try {
+    const res = await AxiosInstance.get('analytics/workflows_by_status/');
+    return res.data || {};
+  } catch {
+    const workflows = await AxiosInstance.get('workflows/');
+    const list = Array.isArray(workflows.data) ? workflows.data : [];
+    return list.reduce((acc, wf) => {
+      const status = wf.status || 'UNKNOWN';
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {});
+  }
+};
+
+export const fetchVolunteersByStatus = async () => {
+  try {
+    const res = await AxiosInstance.get('analytics/volunteers_by_status/');
+    return res.data || {};
+  } catch {
+    const volunteers = await AxiosInstance.get('volunteers/');
+    const list = Array.isArray(volunteers.data) ? volunteers.data : [];
+    return list.reduce((acc, v) => {
+      const status = v.current_status || v.status || 'UNKNOWN';
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {});
+  }
+};
