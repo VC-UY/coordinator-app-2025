@@ -3,6 +3,9 @@ venv
 __pycache__
 .coordinator
 results
+.env
+*.sqlite3
+node_modules/
 
 *.xlsx
 *.csv

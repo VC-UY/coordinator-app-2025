@@ -1,4 +1,4 @@
-# 🚀 Guide de Démarrage Simplifié
+#  Guide de Démarrage Simplifié
 
 ## Lancement Ultra-Rapide
 
@@ -6,18 +6,18 @@
 ./start.sh
 ```
 
-**C'est tout !** 🎉
+**C'est tout !** 
 
 Cette unique commande démarre automatiquement :
-- ✅ Serveur Django (port 8080)
-- ✅ Proxy Redis (port 6380)  
-- ✅ Proxy de fichiers (port 8000)
+-  Serveur Django (port 8080)
+-  Proxy Redis (port 6380)  
+-  Proxy de fichiers (port 8000)
 
 Les logs sont séparés automatiquement dans `coordinator_project/logs/`
 
 ---
 
-## 📊 Voir les Logs en Temps Réel
+## Voir les Logs en Temps Réel
 
 ```bash
 ./view_logs.sh
@@ -44,7 +44,7 @@ python manage.py runall --help
 
 ---
 
-## 🛑 Arrêter les Services
+##  Arrêter les Services
 
 Dans le terminal où tournent les services :
 ```
@@ -53,7 +53,7 @@ Ctrl+C
 
 ---
 
-## 📝 Fichiers de Logs
+##  Fichiers de Logs
 
 ```
 coordinator_project/logs/
@@ -71,7 +71,7 @@ tail -f coordinator_project/logs/proxy_latest.log
 
 ---
 
-## ✅ Vérification Rapide
+##  Vérification Rapide
 
 ```bash
 # Serveur Django
@@ -86,7 +86,7 @@ redis-cli -h localhost -p 6380 PING
 
 ---
 
-## 📚 Documentation Complète
+##  Documentation Complète
 
 - **Détails complets** : [coordinator_project/QUICK_START.md](coordinator_project/QUICK_START.md)
 - **Proxy de fichiers** : [FILE_PROXY_GUIDE.md](FILE_PROXY_GUIDE.md)

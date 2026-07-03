@@ -21,8 +21,8 @@ class Command(BaseCommand):
         parser.add_argument(
             '--django-port',
             type=int,
-            default=8100,
-            help='Port pour le serveur Django (défaut: 8100)'
+            default=8001,
+            help='Port pour le serveur Django (défaut: 8001)'
         )
         parser.add_argument(
             '--redis-host',

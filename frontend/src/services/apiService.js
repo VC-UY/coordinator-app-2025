@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Configuration de l'URL de base de l'API
 // Assurez-vous que cette URL correspond à celle de votre serveur Django
-const API_URL = 'http://127.0.0.1:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8001/api';
 
 // Création d'une instance axios avec la configuration de base
 const apiClient = axios.create({

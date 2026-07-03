@@ -21,6 +21,18 @@ from .utils import generate_token
 logger = logging.getLogger(__name__)
 
 
+def verify_volunteer_password(plain_password: str, stored_password: str) -> bool:
+    """Vérifie un mot de passe volontaire (hash Django ou legacy en clair)."""
+    if check_password(plain_password, stored_password):
+        return True
+    return stored_password == plain_password
+
+
+def hash_volunteer_password(password: str) -> str:
+    """Hash un mot de passe volontaire pour stockage."""
+    return make_password(password)
+
+
 # Répertoire pour stocker les requêtes en attente
 PENDING_REQUESTS_DIR = os.path.join(settings.BASE_DIR, 'pending_requests')
 os.makedirs(PENDING_REQUESTS_DIR, exist_ok=True)
@@ -640,7 +652,7 @@ def volunteer_registration_handler(channel: str, message: Message):
             
             # Mettre à jour les informations du volontaire existant si nécessaire
             existing_machine.username = username
-            existing_machine.password = password
+            existing_machine.password = hash_volunteer_password(password)
             existing_machine.name = name
             existing_machine.ip_address = ip_address
             existing_machine.current_status = 'available'
@@ -725,7 +737,7 @@ def volunteer_registration_handler(channel: str, message: Message):
         volunteer = Volunteer(
             name=name,
             username=username,
-            password=password,
+            password=hash_volunteer_password(password),
             cpu_model=cpu_model,
             cpu_cores=cpu_cores,
             total_ram=ram_mb,
@@ -735,7 +747,7 @@ def volunteer_registration_handler(channel: str, message: Message):
             gpu_model=gpu_model,
             gpu_memory=gpu_memory,
             ip_address=ip_address,
-            communication_port=8002,  # Port par défaut pour les volontaires
+            communication_port=int(os.environ.get('VOLUNTEER_API_PORT', 8003)),
             current_status='available',
             performance={
                 'tasks_total': 0,
@@ -873,8 +885,8 @@ def volunteer_login_handler(channel: str, message: Message):
             delete_pending_request(request_id)
             return
         
-        # Vérifier le mot de passe
-        if volunteer.password != password:
+        # Vérifier le mot de passe (hash ou legacy en clair)
+        if not verify_volunteer_password(password, volunteer.password):
             logger.warning(f"Mot de passe incorrect pour le volontaire {username}")
             
             # Envoyer une réponse d'erreur
