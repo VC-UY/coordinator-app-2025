@@ -1,8 +1,8 @@
-# 🎯 COORDINATOR APP - CENTRE DE CONTRÔLE DU CALCUL DISTRIBUÉ
+# COORDINATOR APP - CENTRE DE CONTRÔLE DU CALCUL DISTRIBUÉ
 
 ---
 
-## 📝 DESCRIPTION DU PROJET
+##  DESCRIPTION DU PROJET
 
 Le **Coordinator App** est le **cerveau central** du système de calcul distribué volontaire. Il orchestre toutes les communications entre les managers et les volontaires, gère l'authentification, les tâches, et fournit une interface de supervision complète.
 
@@ -12,7 +12,7 @@ Le **Coordinator App** est le **cerveau central** du système de calcul distribu
 
 ---
 
-## 🎯 OBJECTIFS
+##  OBJECTIFS
 
 - **Objectif principal** : Servir de coordinateur central pour tout le réseau de calcul distribué
 - **Problématique** : Besoin d'un point central pour coordonner managers et volontaires de manière sécurisée
@@ -20,15 +20,15 @@ Le **Coordinator App** est le **cerveau central** du système de calcul distribu
 
 ---
 
-## 🧩 FONCTIONNALITÉS
+##  FONCTIONNALITÉS
 
-### 🔐 AUTHENTIFICATION CENTRALISÉE
+###  AUTHENTIFICATION CENTRALISÉE
 - Authentification des managers via Redis Pub/Sub
 - Authentification des volontaires
 - Gestion des tokens JWT
 - Contrôle d'accès granulaire par canaux
 
-### 📡 COMMUNICATION REDIS AVANCÉE
+### COMMUNICATION REDIS AVANCÉE
 - **Proxy Redis sécurisé** avec contrôle d'accès
 - Routage intelligent des messages
 - Support WebSockets pour le temps réel
@@ -40,13 +40,13 @@ Le **Coordinator App** est le **cerveau central** du système de calcul distribu
 - Historique complet des communications
 - Sauvegarde automatique des métadonnées
 
-### 📊 INTERFACE DE SUPERVISION
+###  INTERFACE DE SUPERVISION
 - **Dashboard React/Vite** avec Material-UI
 - Monitoring en temps réel du réseau
 - Visualisation des performances (Recharts)
 - Gestion des utilisateurs et permissions
 
-### 🛡️ SÉCURITÉ AVANCÉE
+###  SÉCURITÉ AVANCÉE
 - Proxy Redis avec authentification JWT
 - Filtrage des données sensibles
 - Contrôle d'accès par rôles
@@ -54,16 +54,16 @@ Le **Coordinator App** est le **cerveau central** du système de calcul distribu
 
 ---
 
-## 🚀 PRÉREQUIS SYSTÈME
+##  PRÉREQUIS SYSTÈME
 
-### 🔧 **Logiciels Requis**
+### **Logiciels Requis**
 - **Python 3.8+** - [Télécharger Python](https://www.python.org/downloads/)
 - **Node.js 16+** - [Télécharger Node.js](https://nodejs.org/)
 - **MongoDB 5.0+** - [Installer MongoDB](https://docs.mongodb.com/manual/installation/)
 - **Redis Server 6.0+** - [Installer Redis](https://redis.io/docs/getting-started/installation/)
 - **Git** - [Installer Git](https://git-scm.com/downloads)
 
-### 🌐 **Configuration Réseau**
+###  **Configuration Réseau**
 - **Port 8001** : Backend Django/ASGI (WebSockets)
 - **Port 5173** : Frontend React/Vite (développement)
 - **Port 6379** : Redis Server principal
@@ -72,15 +72,15 @@ Le **Coordinator App** est le **cerveau central** du système de calcul distribu
 
 ---
 
-## 📦 INSTALLATION COMPLÈTE
+##  INSTALLATION COMPLÈTE
 
-### 1️⃣ **Cloner le Projet**
+### 1 **Cloner le Projet**
 ```bash
 git clone <repository-url>
 cd Coordinator-App
 ```
 
-### 2️⃣ **Installation Backend (Django)**
+### 2 **Installation Backend (Django)**
 ```bash
 cd coordinator_project
 
@@ -97,7 +97,7 @@ coordinator-env\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 3️⃣ **Installation Frontend (React)**
+### 3 **Installation Frontend (React)**
 ```bash
 cd ../frontend
 
@@ -105,7 +105,7 @@ cd ../frontend
 npm install
 ```
 
-### 4️⃣ **Configuration MongoDB**
+### 4 **Configuration MongoDB**
 ```bash
 # Démarrer MongoDB
 sudo systemctl start mongod  # Linux
@@ -117,7 +117,7 @@ brew services start mongodb-community  # macOS
 mongo --eval "db.adminCommand('ismaster')"
 ```
 
-### 5️⃣ **Configuration Redis**
+### 5 **Configuration Redis**
 ```bash
 # Démarrer Redis
 redis-server
@@ -127,7 +127,7 @@ redis-cli ping
 # Devrait retourner : PONG
 ```
 
-### 6️⃣ **Migrations Django**
+### 6 **Migrations Django**
 ```bash
 cd coordinator_project
 
@@ -141,9 +141,9 @@ python manage.py migrate
 
 ---
 
-## ▶️ LANCEMENT DE L'APPLICATION
+## LANCEMENT DE L'APPLICATION
 
-### 🚀 **Backend (4 terminaux requis)**
+### **Backend (4 terminaux requis)**
 
 #### **Terminal 1 : Redis Server**
 ```bash
@@ -179,7 +179,7 @@ daphne coordinator_project.asgi:application -p 8001 -b 0.0.0.0
 daphne backend.asgi:application -p 8003 -b 0.0.0.0
 ```
 
-### 🖥️ **Frontend**
+###  **Frontend**
 
 #### **Terminal 5 : Frontend React/Vite**
 ```bash
@@ -189,7 +189,7 @@ cd frontend
 npm run dev
 ```
 
-### 🌐 **Accéder aux Applications**
+###  **Accéder aux Applications**
 - **Frontend (Dashboard)** : `http://localhost:5173`
 - **Backend API** : `http://localhost:8001/api/`
 - **Admin Django** : `http://localhost:8001/admin/`
@@ -198,9 +198,9 @@ npm run dev
 
 ---
 
-## ⚙️ CONFIGURATION
+##  CONFIGURATION
 
-### 🔧 **Configuration Backend**
+###  **Configuration Backend**
 Modifier `coordinator_project/coordinator_project/settings.py` :
 
 ```python
@@ -226,7 +226,7 @@ CORS_ALLOWED_ORIGINS = [
 ]
 ```
 
-### 🌐 **Configuration Frontend**
+###  **Configuration Frontend**
 Créer `frontend/src/config.js` :
 
 ```javascript
@@ -234,7 +234,7 @@ export const API_BASE_URL = 'http://localhost:8001/api';
 export const WS_BASE_URL = 'ws://localhost:8001/ws';
 ```
 
-### 🔒 **Configuration JWT**
+###  **Configuration JWT**
 ```python
 # settings.py
 SECRET_KEY = 'your-secret-key-here'
@@ -246,7 +246,7 @@ JWT_REFRESH_EXPIRATION_HOURS = 168  # 7 jours
 
 ---
 
-## 📁 STRUCTURE DU PROJET
+##  STRUCTURE DU PROJET
 
 ```
 Coordinator-App/
@@ -289,7 +289,7 @@ Coordinator-App/
 
 ---
 
-## 🔄 FONCTIONNEMENT
+##  FONCTIONNEMENT
 
 ### 1. **Démarrage du Coordinateur**
 - MongoDB et Redis démarrent
@@ -316,7 +316,7 @@ Coordinator-App/
 
 ---
 
-## 🛑 ARRÊTER L'APPLICATION
+##  ARRÊTER L'APPLICATION
 
 ```bash
 # Dans chaque terminal, appuyez sur :
@@ -335,9 +335,9 @@ deactivate
 
 ---
 
-## 🐛 DÉPANNAGE
+##  DÉPANNAGE
 
-### ❌ **Erreur de connexion MongoDB**
+###  **Erreur de connexion MongoDB**
 ```bash
 # Vérifier le statut de MongoDB
 sudo systemctl status mongod
@@ -349,7 +349,7 @@ sudo systemctl restart mongod
 sudo tail -f /var/log/mongodb/mongod.log
 ```
 
-### ❌ **Erreur de connexion Redis**
+###  **Erreur de connexion Redis**
 ```bash
 # Vérifier que Redis fonctionne
 redis-cli ping
@@ -358,7 +358,7 @@ redis-cli ping
 sudo systemctl restart redis-server
 ```
 
-### ❌ **Erreur de port occupé**
+###  **Erreur de port occupé**
 ```bash
 # Vérifier quels ports sont utilisés
 netstat -tlnp | grep -E '(8001|5173|6379|6380|27017)'
@@ -367,7 +367,7 @@ netstat -tlnp | grep -E '(8001|5173|6379|6380|27017)'
 sudo kill -9 $(lsof -t -i:8001)
 ```
 
-### ❌ **Problème CORS Frontend**
+###  **Problème CORS Frontend**
 Vérifier que le backend est configuré pour accepter le frontend :
 ```python
 # settings.py
@@ -378,9 +378,9 @@ CORS_ALLOWED_ORIGINS = [
 
 ---
 
-## 📊 MONITORING
+##  MONITORING
 
-### 📈 **Tableau de Bord**
+### **Tableau de Bord**
 - **URL** : `http://localhost:5173`
 - **Fonctionnalités** :
   - Vue d'ensemble du réseau
@@ -388,7 +388,7 @@ CORS_ALLOWED_ORIGINS = [
   - Performances des tâches
   - Logs temps réel
 
-### 📋 **Commandes de Surveillance**
+###  **Commandes de Surveillance**
 ```bash
 # Logs du coordinateur
 tail -f coordinator_project/COORDINATOR.LOG
@@ -403,7 +403,7 @@ redis-cli info
 redis-cli client list
 ```
 
-### 🔍 **API de Monitoring**
+###  **API de Monitoring**
 ```bash
 # Health check du système
 curl http://localhost:8001/api/system-health/
@@ -417,9 +417,9 @@ curl http://localhost:8001/api/analytics/task_performance/
 
 ---
 
-## 🔧 COMMANDES UTILES
+## COMMANDES UTILES
 
-### 📊 **Gestion MongoDB**
+###  **Gestion MongoDB**
 ```bash
 # Accéder à la base de données
 mongo coordinator_db
@@ -434,7 +434,7 @@ db.manager.find().pretty()
 db.volunteer.find().pretty()
 ```
 
-### 📡 **Gestion Redis**
+###  **Gestion Redis**
 ```bash
 # Voir tous les canaux actifs
 redis-cli pubsub channels
@@ -446,7 +446,7 @@ redis-cli monitor
 redis-cli client list
 ```
 
-### 🐛 **Debug**
+###  **Debug**
 ```bash
 # Démarrer avec logs détaillés
 cd coordinator_project
@@ -459,14 +459,14 @@ python manage.py start_redis_proxy --redis-host localhost --redis-port 6379 --pr
 
 ---
 
-## 📄 LICENCE
+##  LICENCE
 
 Ce projet est **open source** sous licence MIT.  
 Réutilisation, modification et contribution autorisées.
 
 ---
 
-## 👥 CONTRIBUTEURS
+##  CONTRIBUTEURS
 
 - **Équipe Coordinator** - Développement du système central
 - **Équipe Manager** - Intégration des workflows
@@ -474,7 +474,7 @@ Réutilisation, modification et contribution autorisées.
 
 ---
 
-## 📞 SUPPORT
+##  SUPPORT
 
 En cas de problème :
 
@@ -484,7 +484,7 @@ En cas de problème :
 4. **Vérifier les ports** : Backend (8001), Frontend (5173)
 5. **Contacter l'équipe** si le problème persiste
 
-### 🔗 **Liens Utiles**
+### **Liens Utiles**
 - Documentation MongoDB : https://docs.mongodb.com/
 - Documentation Redis : https://redis.io/documentation
 - Documentation Django : https://docs.djangoproject.com/

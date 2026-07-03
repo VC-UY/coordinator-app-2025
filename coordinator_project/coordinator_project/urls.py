@@ -7,4 +7,5 @@ urlpatterns = [
     path('api/', include('volunteer.urls')),
     path('api/', include('communication.urls')),
     path('api/', include('client_validation.urls')),
+    path('api/logs/', include('message_logging.urls')),
 ]

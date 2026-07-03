@@ -37,11 +37,11 @@ const ClientValidation = () => {
     try {
       setLoading(true);
       const [statsData, regsData, attemptsData, alertsData, blacklistData] = await Promise.all([
-        AxiosInstance.get('api/validation/stats/'),
-        AxiosInstance.get('api/registrations/'),
-        AxiosInstance.get('api/login-attempts/'),
-        AxiosInstance.get('api/security-alerts/'),
-        AxiosInstance.get('api/ip-blacklist/')
+        AxiosInstance.get('validation/stats/'),
+        AxiosInstance.get('registrations/'),
+        AxiosInstance.get('login-attempts/'),
+        AxiosInstance.get('security-alerts/'),
+        AxiosInstance.get('ip-blacklist/')
       ]);
 
       setStats(statsData.data);
@@ -75,7 +75,7 @@ const ClientValidation = () => {
   // Approve registration
   const handleApprove = async (registration) => {
     try {
-      await AxiosInstance.post(`api/registrations/${registration.id}/approve/`);
+      await AxiosInstance.post(`registrations/${registration.id}/approve/`);
       showSnackbar('Inscription approuvée avec succès', 'success');
       fetchData();
     } catch (error) {
@@ -87,7 +87,7 @@ const ClientValidation = () => {
   // Reject registration
   const handleReject = async (registration, reason) => {
     try {
-      await AxiosInstance.post(`api/registrations/${registration.id}/reject/`, { reason });
+      await AxiosInstance.post(`registrations/${registration.id}/reject/`, { reason });
       showSnackbar('Inscription rejetée', 'warning');
       setDialogOpen(false);
       setRejectReason('');
@@ -101,7 +101,7 @@ const ClientValidation = () => {
   // Resolve security alert
   const handleResolveAlert = async (alert, notes) => {
     try {
-      await AxiosInstance.post(`api/security-alerts/${alert.id}/resolve/`, { notes });
+      await AxiosInstance.post(`security-alerts/${alert.id}/resolve/`, { notes });
       showSnackbar('Alerte résolue', 'success');
       setDialogOpen(false);
       fetchData();
@@ -114,7 +114,7 @@ const ClientValidation = () => {
   // Remove IP from blacklist
   const handleRemoveIP = async (entry) => {
     try {
-      await AxiosInstance.delete(`api/ip-blacklist/${entry.id}/`);
+      await AxiosInstance.delete(`ip-blacklist/${entry.id}/`);
       showSnackbar('IP retirée de la liste noire', 'success');
       fetchData();
     } catch (error) {

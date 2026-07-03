@@ -57,8 +57,8 @@ function ClientMonitoring() {
     setLoading(true);
     try {
       const [managersRes, volunteersRes] = await Promise.all([
-        AxiosInstance.get('api/manager/'),
-        AxiosInstance.get('api/volunteer/')
+        AxiosInstance.get('manager/'),
+        AxiosInstance.get('volunteer/')
       ]);
       setManagers(managersRes.data);
       setVolunteers(volunteersRes.data);
@@ -83,7 +83,7 @@ function ClientMonitoring() {
 
   const handleActivate = async (client, type) => {
     try {
-      const endpoint = type === 'manager' ? `api/manager/${client.id}/activate/` : `api/volunteer/${client.id}/activate/`;
+      const endpoint = type === 'manager' ? `manager/${client.id}/activate/` : `volunteer/${client.id}/activate/`;
       await AxiosInstance.post(endpoint);
       showSnackbar(`${type === 'manager' ? 'Manager' : 'Volunteer'} activé avec succès`, 'success');
       fetchData();
@@ -96,7 +96,7 @@ function ClientMonitoring() {
 
   const handleDeactivate = async (client, type) => {
     try {
-      const endpoint = type === 'manager' ? `api/manager/${client.id}/deactivate/` : `api/volunteer/${client.id}/deactivate/`;
+      const endpoint = type === 'manager' ? `manager/${client.id}/deactivate/` : `volunteer/${client.id}/deactivate/`;
       await AxiosInstance.post(endpoint, { reason });
       showSnackbar(`${type === 'manager' ? 'Manager' : 'Volunteer'} désactivé avec succès`, 'success');
       fetchData();
@@ -110,7 +110,7 @@ function ClientMonitoring() {
 
   const handleSuspend = async (client) => {
     try {
-      await AxiosInstance.post(`api/manager/${client.id}/suspend/`, { reason });
+      await AxiosInstance.post(`manager/${client.id}/suspend/`, { reason });
       showSnackbar('Manager suspendu avec succès', 'success');
       fetchData();
       setActionDialog({ open: false, client: null, action: null, type: null });
