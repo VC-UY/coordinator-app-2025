@@ -2,7 +2,7 @@ name: Deploy Coordinator
 
 on:
   push:
-    branches: [version3.0, main, master]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
