@@ -29,6 +29,18 @@ class ManagerSerializer(serializers.Serializer):
             raise serializers.ValidationError({'mongoengine': str(e)})
         return instance
 
+    def to_representation(self, instance):
+        workflow_count = Workflow.objects.filter(owner=instance).count()
+        return {
+            'id': str(instance.id),
+            'username': instance.username,
+            'email': instance.email,
+            'status': instance.status,
+            'registration_date': getattr(instance, 'registration_date', None),
+            'last_login': getattr(instance, 'last_login', None),
+            'workflow_count': workflow_count,
+        }
+
 class ManagerRegistrationSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
     email = serializers.EmailField()

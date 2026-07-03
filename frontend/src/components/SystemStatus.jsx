@@ -1,249 +1,117 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Typography, Paper, Grid, Card, CardContent, CardHeader, Chip, Avatar, Divider, List, ListItem, ListItemText, ListItemIcon } from '@mui/material';
-import PersonIcon from '@mui/icons-material/Person';
-import ComputerIcon from '@mui/icons-material/Computer';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ErrorIcon from '@mui/icons-material/Error';
-import DevicesIcon from '@mui/icons-material/Devices';
-import AxiosInstance from './axios';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  Box, Typography, Paper, CircularProgress, Grid, Stack, Button, Chip,
+} from '@mui/material';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import { fetchSystemHealth, fetchManagersCount, fetchVolunteersCount, fetchWorkflowsCount, fetchTasksCount } from './apiHome';
 
-const SystemStatus = () => {
-  // Initialize with empty data
-  const [systemState, setSystemState] = useState({
-    managers: {
-      total: 0,
-      connected: 0,
-      list: []
-    },
-    volunteers: {
-      total: 0,
-      connected: 0,
-      list: []
-    },
-    lastUpdated: new Date()
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const fetchSystemState = async () => {
-    try {
-      // Récupérer les managers
-      const managersResponse = await AxiosInstance.get('managers/');
-
-      // Récupérer les volontaires
-      const volunteersResponse = await AxiosInstance.get('volunteers/');
-      
-      // Transformer les données pour correspondre au format attendu
-      const managers = managersResponse.data.map(manager => ({
-        id: manager.id,
-        username: manager.username,
-        connected: manager.status === 'active',
-        last_activity: manager.last_login
-      }));
-      
-      const volunteers = volunteersResponse.data.map(volunteer => ({
-        id: volunteer.id,
-        name: volunteer.name,
-        connected: volunteer.current_status === 'available',
-        last_activity: volunteer.last_update,
-        resources: volunteer.tech_specs ? {
-          cpu: volunteer.tech_specs.cpu_usage || 0,
-          memory: volunteer.tech_specs.memory_usage || 0
-        } : null,
-        ip_address: volunteer.ip_address || 'Inconnue'
-      }));
-      
-      // Mettre à jour l'état
-      setSystemState(prevState => ({
-        managers: {
-          total: managers.length,
-          connected: managers.filter(m => m.connected).length,
-          list: managers
-        },
-        volunteers: {
-          total: volunteers.length,
-          connected: volunteers.filter(v => v.connected).length,
-          list: volunteers
-        },
-        lastUpdated: new Date()
-      }));
-      
-      setError(null);
-    } catch (err) {
-      console.error('Erreur lors de la récupération de l\'état du système:', err);
-      // En cas d'erreur, conserver l'état précédent sans montrer d'erreur
-      setError(null);
-    }
-  };
-
-  useEffect(() => {
-    // Récupérer l'état initial
-    fetchSystemState();
-
-    // Mettre à jour toutes les 2 secondes pour un suivi en temps réel
-    const interval = setInterval(() => {
-      fetchSystemState();
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <Box sx={{ p: 2 }}>
-      <Typography variant="h5" gutterBottom>
-        État Global du Système
-        <Chip 
-          sx={{ ml: 2 }} 
-          color="success" 
-          icon={<CheckCircleIcon />} 
-          label={`Mis à jour ${systemState.lastUpdated ? new Date(systemState.lastUpdated).toLocaleTimeString() : ''}`} 
-        />
-      </Typography>
-
-      <Grid container spacing={3}>
-        {/* Section Managers */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardHeader 
-              title="Managers" 
-              avatar={<Avatar><PersonIcon /></Avatar>}
-              subheader={`Total: ${systemState.managers.total} | Connectés: ${systemState.managers.connected}`}
-            />
-            <CardContent>
-              <List dense>
-                {systemState.managers.list.length === 0 ? (
-                  <Typography variant="body2" sx={{ fontStyle: 'italic', textAlign: 'center' }}>
-                    Aucun manager enregistré
-                  </Typography>
-                ) : (
-                  systemState.managers.list.map((manager, index) => (
-                    <ListItem key={index}>
-                      <ListItemIcon>
-                        <Chip 
-                          size="small"
-                          avatar={<Avatar><PersonIcon /></Avatar>}
-                          color={manager.connected ? "success" : "default"}
-                          label={manager.connected ? "En ligne" : "Hors ligne"}
-                        />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary={manager.username}
-                        secondary={`ID: ${manager.id || 'N/A'} | Dernière activité: ${manager.last_activity ? new Date(manager.last_activity).toLocaleString() : 'Jamais'}`}
-                      />
-                    </ListItem>
-                  ))
-                )}
-              </List>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Section Volontaires */}
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardHeader 
-              title="Volontaires" 
-              avatar={<Avatar><ComputerIcon /></Avatar>}
-              subheader={`Total: ${systemState.volunteers.total} | Connectés: ${systemState.volunteers.connected}`}
-            />
-            <CardContent>
-              <List dense>
-                {systemState.volunteers.list.length === 0 ? (
-                  <Typography variant="body2" sx={{ fontStyle: 'italic', textAlign: 'center' }}>
-                    Aucun volontaire enregistré
-                  </Typography>
-                ) : (
-                  systemState.volunteers.list.map((volunteer, index) => (
-                    <ListItem key={index}>
-                      <ListItemIcon>
-                        <Chip 
-                          size="small"
-                          avatar={<Avatar><ComputerIcon /></Avatar>}
-                          color={volunteer.connected ? "success" : "default"}
-                          label={volunteer.connected ? "En ligne" : "Hors ligne"}
-                        />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary={volunteer.name}
-                        secondary={
-                          <>
-                            <Typography variant="caption" component="span" display="block">
-                              ID: {volunteer.id || 'N/A'} | IP: {volunteer.ip_address || 'Inconnue'}
-                            </Typography>
-                            <Typography variant="caption" component="span" display="block">
-                              Dernière activité: {volunteer.last_activity ? new Date(volunteer.last_activity).toLocaleString() : 'Jamais'}
-                            </Typography>
-                            <Typography variant="caption" component="span" display="block">
-                              Ressources: {volunteer.resources ? `CPU: ${volunteer.resources.cpu}%, RAM: ${volunteer.resources.memory}%` : 'Inconnues'}
-                            </Typography>
-                          </>
-                        }
-                      />
-                    </ListItem>
-                  ))
-                )}
-              </List>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Section Statistiques Globales */}
-        <Grid item xs={12}>
-          <Card>
-            <CardHeader 
-              title="Statistiques Globales" 
-              avatar={<Avatar><DevicesIcon /></Avatar>}
-            />
-            <CardContent>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={4}>
-                  <Paper elevation={2} sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography variant="h6">Total Participants</Typography>
-                    <Typography variant="h4">{systemState.managers.total + systemState.volunteers.total}</Typography>
-                    <Typography variant="body2">
-                      {systemState.managers.connected + systemState.volunteers.connected} connectés
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Paper elevation={2} sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography variant="h6">Taux de Connexion</Typography>
-                    <Typography variant="h4">
-                      {(systemState.managers.total + systemState.volunteers.total) > 0 ?
-                        `${Math.round(((systemState.managers.connected + systemState.volunteers.connected) / (systemState.managers.total + systemState.volunteers.total)) * 100)}%` :
-                        'N/A'}
-                    </Typography>
-                    <Typography variant="body2">
-                      Managers: {systemState.managers.total > 0 ? `${Math.round((systemState.managers.connected / systemState.managers.total) * 100)}%` : 'N/A'}
-                      {' | '}
-                      Volontaires: {systemState.volunteers.total > 0 ? `${Math.round((systemState.volunteers.connected / systemState.volunteers.total) * 100)}%` : 'N/A'}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                  <Paper elevation={2} sx={{ p: 2, textAlign: 'center' }}>
-                    <Typography variant="h6">État du Système</Typography>
-                    <Chip 
-                      sx={{ mt: 1 }}
-                      size="large"
-                      color={(systemState.managers.connected > 0 && systemState.volunteers.connected > 0) ? "success" : "warning"}
-                      icon={(systemState.managers.connected > 0 && systemState.volunteers.connected > 0) ? <CheckCircleIcon /> : <ErrorIcon />}
-                      label={(systemState.managers.connected > 0 && systemState.volunteers.connected > 0) ? "Opérationnel" : "Partiellement Opérationnel"}
-                    />
-                    <Typography variant="body2" sx={{ mt: 1 }}>
-                      {(systemState.managers.connected === 0) ? "Aucun manager connecté" : ""}
-                      {(systemState.managers.connected === 0 && systemState.volunteers.connected === 0) ? " et " : ""}
-                      {(systemState.volunteers.connected === 0) ? "Aucun volontaire connecté" : ""}
-                    </Typography>
-                  </Paper>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Box>
-  );
+const cardSx = {
+  p: 3,
+  borderRadius: 2,
+  background: 'linear-gradient(135deg, rgba(0, 32, 96, 0.7) 0%, rgba(0, 20, 64, 0.7) 100%)',
+  border: '2px solid rgba(0, 180, 240, 0.3)',
 };
 
-export default SystemStatus;
+export default function SystemStatus() {
+  const [health, setHealth] = useState(null);
+  const [counts, setCounts] = useState({ managers: 0, volunteers: 0, workflows: 0, tasks: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    try {
+      const [healthData, managers, volunteers, workflows, tasks] = await Promise.all([
+        fetchSystemHealth(),
+        fetchManagersCount(),
+        fetchVolunteersCount(),
+        fetchWorkflowsCount(),
+        fetchTasksCount(),
+      ]);
+      setHealth(healthData);
+      setCounts({ managers, volunteers, workflows, tasks });
+      setError('');
+    } catch (err) {
+      console.error(err);
+      setError('Impossible de charger l etat systeme.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+    const timer = setInterval(load, 10000);
+    return () => clearInterval(timer);
+  }, [load]);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <CircularProgress sx={{ color: '#00D4FF' }} />
+      </Box>
+    );
+  }
+
+  const ok = health?.status === 'ok';
+
+  return (
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
+      <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={2} mb={3}>
+        <Box>
+          <Typography variant="h4" fontWeight={800} color="#fff">Etat systeme</Typography>
+          <Typography color="#00B0F0">Sante du coordinateur et volumes reels</Typography>
+        </Box>
+        <Button startIcon={<RefreshIcon />} onClick={load} sx={{ color: '#00D4FF' }}>
+          Actualiser
+        </Button>
+      </Stack>
+
+      {error && <Typography color="#FF4444" mb={2}>{error}</Typography>}
+
+      <Paper elevation={0} sx={{ ...cardSx, mb: 3 }}>
+        <Stack direction="row" spacing={2} alignItems="center" mb={2}>
+          <Typography variant="h6" color="#fff">Statut global</Typography>
+          <Chip
+            label={health?.status || 'inconnu'}
+            sx={{ color: ok ? '#00FF88' : '#FFA500', borderColor: ok ? '#00FF88' : '#FFA500' }}
+            variant="outlined"
+          />
+        </Stack>
+        <Grid container spacing={2}>
+          {[
+            { label: 'Base de donnees', value: health?.details?.database },
+            { label: 'Redis', value: health?.details?.redis_connection },
+            { label: 'Volontaires actifs', value: health?.details?.active_volunteers },
+            { label: 'Erreurs recentes', value: health?.details?.recent_errors },
+          ].map((item) => (
+            <Grid item xs={12} sm={6} md={3} key={item.label}>
+              <Box sx={{ p: 2, borderRadius: 2, background: 'rgba(0,180,240,0.08)' }}>
+                <Typography variant="caption" color="#00B0F0">{item.label}</Typography>
+                <Typography variant="h6" color="#fff">{item.value ?? '—'}</Typography>
+              </Box>
+            </Grid>
+          ))}
+        </Grid>
+      </Paper>
+
+      <Paper elevation={0} sx={cardSx}>
+        <Typography variant="h6" color="#fff" mb={2}>Volumes</Typography>
+        <Grid container spacing={2}>
+          {[
+            { label: 'Managers', value: counts.managers },
+            { label: 'Volontaires', value: counts.volunteers },
+            { label: 'Workflows', value: counts.workflows },
+            { label: 'Taches', value: counts.tasks },
+          ].map((item) => (
+            <Grid item xs={12} sm={6} md={3} key={item.label}>
+              <Box sx={{ p: 2, borderRadius: 2, background: 'rgba(0,180,240,0.08)' }}>
+                <Typography variant="caption" color="#00B0F0">{item.label}</Typography>
+                <Typography variant="h5" color="#fff">{item.value}</Typography>
+              </Box>
+            </Grid>
+          ))}
+        </Grid>
+      </Paper>
+    </Box>
+  );
+}

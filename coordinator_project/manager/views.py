@@ -776,17 +776,7 @@ class WorkflowStatusView(APIView):
                 else:
                     status_counts[status] = 1
             
-            # Formater les données pour le frontend (format attendu par recharts)
             result = [{"name": status, "value": count} for status, count in status_counts.items()]
-            
-            # Si aucun workflow n'existe, renvoyer des données de test
-            if not result:
-                result = [
-                    {"name": "CREATED", "value": 2},
-                    {"name": "RUNNING", "value": 3},
-                    {"name": "COMPLETED", "value": 1}
-                ]
-            
             return Response(result)
         except Exception as e:
             return Response({
@@ -815,17 +805,7 @@ class VolunteerStatusView(APIView):
                 else:
                     status_counts[status] = 1
             
-            # Formater les données pour le frontend (format attendu par recharts)
             result = [{"name": status, "value": count} for status, count in status_counts.items()]
-            
-            # Si aucun volunteer n'existe, renvoyer des données de test
-            if not result:
-                result = [
-                    {"name": "available", "value": 5},
-                    {"name": "busy", "value": 3},
-                    {"name": "offline", "value": 2}
-                ]
-            
             return Response(result)
         except Exception as e:
             return Response({
@@ -861,23 +841,14 @@ class TaskPerformanceView(APIView):
                 
                 task_types[task_type]["count"] += 1
                 
-                # Simuler le temps d'exécution (en minutes)
                 execution_time = 0
                 if task.start_time and task.end_time:
-                    start = task.start_time
-                    end = task.end_time
-                    execution_time = (end - start).total_seconds() / 60
-                else:
-                    # Simuler un temps d'exécution si non disponible
-                    execution_time = 10 + (hash(task.id) % 50)  # Entre 10 et 60 minutes
-                
+                    execution_time = (task.end_time - task.start_time).total_seconds() / 60
                 task_types[task_type]["total_time"] += execution_time
-                
-                # Simuler le taux de réussite
-                if task.status == "COMPLETED":
+
+                if str(task.status).upper() in ("COMPLETED", "COMPLETE"):
                     task_types[task_type]["success_rate"] += 1
             
-            # Calculer les moyennes et formater les données
             result = []
             for task_type, data in task_types.items():
                 count = data["count"]
@@ -890,16 +861,6 @@ class TaskPerformanceView(APIView):
                     "successRate": round(success_rate, 2),
                     "count": count
                 })
-            
-            # Si aucune tâche n'existe, renvoyer des données de test
-            if not result:
-                result = [
-                    {"name": "Preprocessing", "avgExecutionTime": 15.5, "successRate": 92.0, "count": 12},
-                    {"name": "Training", "avgExecutionTime": 45.2, "successRate": 85.5, "count": 8},
-                    {"name": "Validation", "avgExecutionTime": 12.8, "successRate": 97.0, "count": 15},
-                    {"name": "Deployment", "avgExecutionTime": 8.5, "successRate": 89.0, "count": 5}
-                ]
-            
             return Response(result)
         except Exception as e:
             return Response({
@@ -912,41 +873,17 @@ class ResourceUtilizationView(APIView):
     permission_classes = [permissions.AllowAny]
     
     def get(self, request):
-        """
-        Endpoint pour obtenir les données d'utilisation des ressources
-        """
+        """Liste les volontaires avec leur statut reel (pas de metriques inventees)."""
         try:
-            # Dans un cas réel, vous récupéreriez ces données à partir de métriques système
-            # Ici, nous simulons des données d'utilisation des ressources
-            
-            # Obtenir tous les volunteers pour simuler l'utilisation des ressources
             volunteers = Volunteer.objects.all()
-            
-            # Simuler l'utilisation des ressources pour chaque volunteer
             resource_data = []
-            for i, volunteer in enumerate(volunteers):
-                # Simuler des données d'utilisation CPU/RAM/Disque
-                cpu_usage = 20 + (hash(str(volunteer.id)) % 60)  # Entre 20% et 80%
-                ram_usage = 30 + (hash(str(volunteer.id) + "ram") % 50)  # Entre 30% et 80%
-                disk_usage = 10 + (hash(str(volunteer.id) + "disk") % 70)  # Entre 10% et 80%
-                
+            for volunteer in volunteers:
                 resource_data.append({
-                    "name": volunteer.name or f"Volunteer-{i+1}",
-                    "cpu": cpu_usage,
-                    "ram": ram_usage,
-                    "disk": disk_usage
+                    "id": str(volunteer.id),
+                    "name": volunteer.name or volunteer.username,
+                    "username": volunteer.username,
+                    "status": volunteer.current_status,
                 })
-            
-            # Si aucun volunteer n'existe, renvoyer des données de test
-            if not resource_data:
-                resource_data = [
-                    {"name": "Server-1", "cpu": 65, "ram": 72, "disk": 45},
-                    {"name": "Server-2", "cpu": 35, "ram": 48, "disk": 30},
-                    {"name": "Server-3", "cpu": 80, "ram": 65, "disk": 70},
-                    {"name": "Server-4", "cpu": 45, "ram": 55, "disk": 25},
-                    {"name": "Server-5", "cpu": 55, "ram": 40, "disk": 50}
-                ]
-            
             return Response(resource_data)
         except Exception as e:
             return Response({

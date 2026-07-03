@@ -4,18 +4,19 @@ from .models import Volunteer
 class VolunteerSerializer(serializers.Serializer):
     id = serializers.UUIDField(read_only=True)
     name = serializers.CharField()
-    cpu_model = serializers.CharField()
-    cpu_cores = serializers.IntegerField()
-    total_ram = serializers.IntegerField()
-    available_storage = serializers.IntegerField()
-    operating_system = serializers.CharField()
+    username = serializers.CharField(required=False)
+    cpu_model = serializers.CharField(required=False)
+    cpu_cores = serializers.IntegerField(required=False)
+    total_ram = serializers.IntegerField(required=False)
+    available_storage = serializers.IntegerField(required=False)
+    operating_system = serializers.CharField(required=False)
     last_update = serializers.DateTimeField(required=False)
     current_status = serializers.CharField()
-    gpu_available = serializers.BooleanField()
+    gpu_available = serializers.BooleanField(required=False)
     gpu_model = serializers.CharField(allow_null=True, required=False)
     gpu_memory = serializers.IntegerField(allow_null=True, required=False)
-    ip_address = serializers.CharField()
-    communication_port = serializers.IntegerField()
+    ip_address = serializers.CharField(required=False)
+    communication_port = serializers.IntegerField(required=False)
     preferences = serializers.DictField(required=False)
     performance = serializers.DictField(required=False)
     last_activity = serializers.DateTimeField(allow_null=True, required=False)
@@ -31,3 +32,26 @@ class VolunteerSerializer(serializers.Serializer):
             setattr(instance, attr, value)
         instance.save()
         return instance
+
+    def to_representation(self, instance):
+        return {
+            'id': str(instance.id),
+            'name': instance.name,
+            'username': getattr(instance, 'username', None),
+            'current_status': instance.current_status,
+            'cpu_model': getattr(instance, 'cpu_model', None),
+            'cpu_cores': getattr(instance, 'cpu_cores', None),
+            'total_ram': getattr(instance, 'total_ram', None),
+            'available_storage': getattr(instance, 'available_storage', None),
+            'operating_system': getattr(instance, 'operating_system', None),
+            'last_update': getattr(instance, 'last_update', None),
+            'gpu_available': getattr(instance, 'gpu_available', False),
+            'gpu_model': getattr(instance, 'gpu_model', None),
+            'gpu_memory': getattr(instance, 'gpu_memory', None),
+            'ip_address': getattr(instance, 'ip_address', None),
+            'communication_port': getattr(instance, 'communication_port', None),
+            'preferences': getattr(instance, 'preferences', {}) or {},
+            'performance': getattr(instance, 'performance', {}) or {},
+            'last_activity': getattr(instance, 'last_activity', None),
+            'is_active': getattr(instance, 'is_active', True),
+        }
