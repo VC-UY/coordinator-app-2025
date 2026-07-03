@@ -102,3 +102,21 @@ export const fetchVolunteersByStatus = async () => {
     }, {});
   }
 };
+
+export const fetchTaskPerformance = async () => {
+  try {
+    const res = await AxiosInstance.get('analytics/task_performance/');
+    return res.data || {};
+  } catch {
+    return {};
+  }
+};
+
+export const fetchResourceUtilization = async () => {
+  try {
+    const res = await AxiosInstance.get('analytics/resource_utilization/');
+    return res.data || {};
+  } catch {
+    return {};
+  }
+};
