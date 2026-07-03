@@ -77,6 +77,7 @@ class CoordinatorAuthMiddleware:
         '/api/auth/login/',
         '/api/auth/session/',
         '/api/system-health/',
+        '/api/internal/managers/',
     )
 
     def __init__(self, get_response):
