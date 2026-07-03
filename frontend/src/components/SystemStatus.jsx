@@ -28,10 +28,10 @@ const SystemStatus = () => {
   const fetchSystemState = async () => {
     try {
       // Récupérer les managers
-      const managersResponse = await AxiosInstance.get('/api/managers/');
-      
+      const managersResponse = await AxiosInstance.get('managers/');
+
       // Récupérer les volontaires
-      const volunteersResponse = await AxiosInstance.get('/api/volunteers/');
+      const volunteersResponse = await AxiosInstance.get('volunteers/');
       
       // Transformer les données pour correspondre au format attendu
       const managers = managersResponse.data.map(manager => ({

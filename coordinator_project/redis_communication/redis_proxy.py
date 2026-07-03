@@ -366,8 +366,49 @@ class RedisProxy:
         else:
             # PING simple
             response = "+PONG\r\n"
-        
+
         writer.write(response.encode())
+
+    async def _handle_config_command(self, writer, args):
+        """
+        Gère la commande CONFIG (GET/SET).
+        Retourne une réponse vide pour CONFIG GET pour éviter les erreurs.
+        """
+        if not args:
+            await self._send_error(writer, "ERR wrong number of arguments for 'config' command")
+            return
+
+        subcommand = args[0]
+        if isinstance(subcommand, bytes):
+            subcommand = subcommand.decode('utf-8').upper()
+        else:
+            subcommand = str(subcommand).upper()
+
+        if subcommand == 'GET':
+            # Retourner un tableau vide pour CONFIG GET
+            # Format: *0\r\n (tableau vide) ou simuler une valeur par défaut
+            if len(args) > 1:
+                param = args[1]
+                if isinstance(param, bytes):
+                    param = param.decode('utf-8')
+
+                # Simuler proto-max-bulk-len avec une valeur élevée
+                if 'proto-max-bulk-len' in param:
+                    response = "*2\r\n$17\r\nproto-max-bulk-len\r\n$10\r\n1073741824\r\n"
+                else:
+                    # Retourner un tableau vide pour les autres paramètres
+                    response = "*0\r\n"
+            else:
+                response = "*0\r\n"
+            writer.write(response.encode())
+
+        elif subcommand == 'SET':
+            # Accepter silencieusement CONFIG SET
+            response = "+OK\r\n"
+            writer.write(response.encode())
+
+        else:
+            await self._send_error(writer, f"ERR Unknown subcommand or wrong number of arguments for '{subcommand}'")
 
     async def _handle_quit_command(self, writer):
         """Gère la commande QUIT"""
@@ -432,6 +473,13 @@ class RedisProxy:
                 elif command_name == 'QUIT':
                     await self._handle_quit_command(writer)
                     break
+                elif command_name == 'CONFIG':
+                    # Simuler une réponse vide pour CONFIG GET (évite les erreurs NOAUTH)
+                    await self._handle_config_command(writer, args)
+                elif command_name == 'AUTH':
+                    # Accepter silencieusement les commandes AUTH (proxy sans auth)
+                    response = "+OK\r\n"
+                    writer.write(response.encode())
                 else:
                     # Commande non supportée
                     await self._send_error(writer, f"ERR unknown command '{command_name}'")

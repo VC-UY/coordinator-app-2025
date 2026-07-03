@@ -21,14 +21,20 @@ class RedisCommunicationConfig(AppConfig):
         Méthode appelée au démarrage de l'application Django.
         Initialise le client Redis et tente de le démarrer automatiquement.
         """
-        # Ne pas exécuter en mode commande (sauf pour runserver)
+        # Ne pas exécuter en mode commande (sauf pour runserver ou daphne)
         import sys
-        if 'runserver' not in sys.argv and 'manage.py' in sys.argv[0]:
+
+        # Vérifier si c'est une commande Django (ni runserver ni daphne)
+        is_management_command = 'manage.py' in sys.argv[0] if sys.argv else False
+        is_runserver = 'runserver' in sys.argv
+        is_daphne = any('daphne' in arg for arg in sys.argv)
+
+        if is_management_command and not is_runserver:
             return
-            
+
         # Éviter les doubles chargements avec le reloader Django
-        # SAUF si --noreload est utilisé (dans ce cas RUN_MAIN n'est jamais défini)
-        using_noreload = '--noreload' in sys.argv
+        # SAUF si --noreload est utilisé ou si c'est daphne
+        using_noreload = '--noreload' in sys.argv or is_daphne
         if not using_noreload and os.environ.get('RUN_MAIN') != 'true':
             return
         
@@ -37,6 +43,7 @@ class RedisCommunicationConfig(AppConfig):
         # Importer ici pour éviter les imports circulaires
         from .client import RedisClient
         from .channels import register_handlers
+        from .logging_handlers import log_all_messages
         
         # Initialiser le client Redis
         client = RedisClient.get_instance()
@@ -68,6 +75,23 @@ class RedisCommunicationConfig(AppConfig):
         except Exception as e:
             logger.error(f"Erreur lors de l'enregistrement des gestionnaires de statut des tâches: {e}")
         
+        except Exception as e:
+            logger.error(f"Erreur lors de l'enregistrement des gestionnaires de statut des tâches: {e}")
+
+        # Enregistrer le logger pour tous les canaux critiques
+        CHANNELS_TO_LOG = [
+            'task/created', 'task/started', 'task/progress', 'task/completed',
+            'task/failed', 'task/paused', 'task/resumed', 'task/timeout',
+            'task/status', 'task/assignment',
+            'workflow/created', 'workflow/updated', 'workflow/deleted',
+            'workflow/status_changed', 'workflow/stopped', 'workflow/resumed',
+            'auth/register', 'manager/status', 'manager/disconnect'
+        ]
+        
+        for channel in CHANNELS_TO_LOG:
+            client.subscribe(channel, log_all_messages)
+        logger.info(f"Logger universel enregistré sur {len(CHANNELS_TO_LOG)} canaux")
+
         logger.info("Application redis_communication initialisée")
         logger.info(f"Canaux enregistrés: {list(client.handlers.keys())}")
         

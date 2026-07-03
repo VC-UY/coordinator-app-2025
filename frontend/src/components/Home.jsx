@@ -15,7 +15,7 @@ import {
   fetchWorkflowsCount,
   fetchTasksCount,
   fetchActiveVolunteers,
-  fetchRunningWorkflows,
+  fetchRunningWorkflowsWithTasks,
   fetchSystemHealth,
   fetchWorkflowsByStatus,
   fetchVolunteersByStatus
@@ -46,6 +46,7 @@ const Home = () => {
 
   // Color mapping for statuses - Updated with new color scheme
   const STATUS_COLORS = {
+    // Workflow statuses
     CREATED: '#00B0F0',
     VALIDATED: '#00D4FF',
     SUBMITTED: '#42a5f5',
@@ -59,6 +60,18 @@ const Home = () => {
     AGGREGATING: '#ab47bc',
     COMPLETED: '#00FF88',
     FAILED: '#FF4444',
+    // Task statuses (lowercase)
+    pending: '#FFA500',
+    assigned: '#DA70D6',
+    running: '#00FF88',
+    paused: '#ffd600',
+    complete: '#00FF88',
+    completed: '#00FF88',
+    failed: '#FF4444',
+    error: '#FF4444',
+    terminate: '#888888',
+    downloading: '#FFC107',
+    // Volunteer statuses
     available: '#00FF88',
     busy: '#FFA500',
     offline: '#888888',
@@ -76,7 +89,7 @@ const Home = () => {
           fetchTasksCount()
         ]),
         fetchActiveVolunteers(),
-        fetchRunningWorkflows(),
+        fetchRunningWorkflowsWithTasks(),
         fetchSystemHealth(),
         Promise.all([
           fetchWorkflowsByStatus(),
@@ -222,46 +235,96 @@ const Home = () => {
         ))}
       </Grid>
       
-      {/* Running Workflows Widget */}
-      <Paper 
+      {/* Workflows with Tasks Widget */}
+      <Paper
         elevation={0}
-        sx={{ 
-          p: 3, 
-          mb: 4, 
+        sx={{
+          p: 3,
+          mb: 4,
           borderRadius: 2,
-          background: 'linear-gradient(135deg, rgba(255, 165, 0, 0.1) 0%, rgba(255, 140, 0, 0.05) 100%)',
+          background: 'linear-gradient(135deg, rgba(0, 32, 96, 0.6) 0%, rgba(0, 20, 64, 0.6) 100%)',
           backdropFilter: 'blur(20px)',
-          border: '2px solid rgba(255, 165, 0, 0.3)'
+          border: '2px solid rgba(0, 180, 240, 0.3)'
         }}
       >
         <Stack direction="row" alignItems="center" spacing={1} mb={2}>
-          <PlayArrowIcon sx={{ color: '#FFA500' }} />
+          <AssignmentIcon sx={{ color: '#00B0F0' }} />
           <Typography variant="h6" fontWeight={600} sx={{ color: '#FFFFFF', letterSpacing: '0.3px' }}>
-            Running Workflows
+            Workflows & Tasks
           </Typography>
         </Stack>
         {runningWorkflows.length === 0 ? (
           <Typography variant="body2" sx={{ color: '#00B0F0' }}>
-            No workflows currently running.
+            No workflows available.
           </Typography>
         ) : (
-          <Stack spacing={1.5}>
+          <Stack spacing={2}>
             {runningWorkflows.map((wf, idx) => (
               <Box key={idx} sx={{
                 p: 2,
-                borderRadius: 1.5,
-                background: 'rgba(0, 180, 240, 0.1)',
+                borderRadius: 2,
+                background: 'rgba(0, 180, 240, 0.05)',
                 border: '1px solid rgba(0, 180, 240, 0.2)',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  background: 'rgba(0, 180, 240, 0.15)',
-                  borderColor: '#00D4FF',
-                  transform: 'translateX(8px)'
-                }
               }}>
-                <Typography variant="body2" sx={{ color: '#FFFFFF', fontWeight: 500 }}>
-                  {wf.name || wf.title || wf.id || JSON.stringify(wf)}
-                </Typography>
+                <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
+                  <Typography variant="body1" sx={{ color: '#FFFFFF', fontWeight: 600 }}>
+                    {wf.name || wf.id}
+                  </Typography>
+                  <Box sx={{
+                    px: 1.5,
+                    py: 0.5,
+                    borderRadius: 1,
+                    background: `${STATUS_COLORS[wf.status] || '#00B0F0'}20`,
+                    border: `1px solid ${STATUS_COLORS[wf.status] || '#00B0F0'}40`,
+                  }}>
+                    <Typography variant="caption" sx={{ color: STATUS_COLORS[wf.status] || '#00B0F0', fontWeight: 600 }}>
+                      {wf.status}
+                    </Typography>
+                  </Box>
+                </Stack>
+
+                {wf.tasks && wf.tasks.length > 0 ? (
+                  <Box sx={{ pl: 2, mt: 1 }}>
+                    <Typography variant="caption" sx={{ color: '#00B0F0', mb: 1, display: 'block' }}>
+                      Tasks ({wf.tasks.length}):
+                    </Typography>
+                    <Stack spacing={0.5}>
+                      {wf.tasks.map((task, taskIdx) => (
+                        <Stack key={taskIdx} direction="row" alignItems="center" spacing={1} sx={{
+                          p: 1,
+                          borderRadius: 1,
+                          background: 'rgba(0, 0, 0, 0.2)',
+                          border: '1px solid rgba(0, 180, 240, 0.1)',
+                        }}>
+                          <Box sx={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            background: STATUS_COLORS[task.status] || '#888888',
+                          }} />
+                          <Typography variant="caption" sx={{ color: '#FFFFFF', flex: 1 }}>
+                            {task.name || task.id}
+                          </Typography>
+                          <Typography variant="caption" sx={{
+                            color: STATUS_COLORS[task.status] || '#888888',
+                            fontWeight: 500
+                          }}>
+                            {task.status}
+                          </Typography>
+                          {task.progress !== undefined && task.progress !== null && (
+                            <Typography variant="caption" sx={{ color: '#00D4FF' }}>
+                              {task.progress}%
+                            </Typography>
+                          )}
+                        </Stack>
+                      ))}
+                    </Stack>
+                  </Box>
+                ) : (
+                  <Typography variant="caption" sx={{ color: '#888888', pl: 2 }}>
+                    No tasks
+                  </Typography>
+                )}
               </Box>
             ))}
           </Stack>

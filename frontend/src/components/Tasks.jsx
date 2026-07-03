@@ -45,7 +45,12 @@ const Tasks = () => {
   useEffect(() => {
     // Connexion WebSocket pour les mises à jour en temps réel
     const connectWebSocket = () => {
-      const ws = new WebSocket('ws://localhost:8001/ws/tasks/');
+      // Déterminer l'URL WebSocket en fonction de l'environnement
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsHost = import.meta.env.PROD ? window.location.host : 'localhost:8001';
+      const wsUrl = `${wsProtocol}//${wsHost}/ws/tasks/`;
+
+      const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
         console.log('WebSocket connecté');
@@ -122,7 +127,7 @@ const Tasks = () => {
 
   const fetchData = async () => {
     try {
-      const res = await AxiosInstance.get('api/tasks/');
+      const res = await AxiosInstance.get('tasks/');
       setTasks(res.data);
       setLoading(false);
       setLastUpdate(new Date());
@@ -194,7 +199,7 @@ const Tasks = () => {
 
   const handleEditSubmit = async () => {
     try {
-      await AxiosInstance.patch(`api/tasks/${selectedTask.id}/`, editForm);
+      await AxiosInstance.patch(`tasks/${selectedTask.id}/`, editForm);
       showSnackbar('Tâche mise à jour avec succès', 'success');
       setEditDialogOpen(false);
       fetchData();
@@ -212,7 +217,7 @@ const Tasks = () => {
 
   const handleDeleteConfirm = async () => {
     try {
-      await AxiosInstance.delete(`api/tasks/${selectedTask.id}/`);
+      await AxiosInstance.delete(`tasks/${selectedTask.id}/`);
       showSnackbar('Tâche supprimée avec succès', 'success');
       setDeleteDialogOpen(false);
       fetchData();
@@ -225,7 +230,7 @@ const Tasks = () => {
   // Handle Stop
   const handleStop = async (task) => {
     try {
-      await AxiosInstance.post(`api/tasks/${task.id}/stop/`);
+      await AxiosInstance.post(`tasks/${task.id}/stop/`);
       showSnackbar(`Tâche "${task.name}" arrêtée avec succès`, 'success');
       fetchData();
     } catch (error) {
@@ -238,7 +243,7 @@ const Tasks = () => {
   // Handle Resume
   const handleResume = async (task) => {
     try {
-      await AxiosInstance.post(`api/tasks/${task.id}/resume/`);
+      await AxiosInstance.post(`tasks/${task.id}/resume/`);
       showSnackbar(`Tâche "${task.name}" reprise avec succès`, 'success');
       fetchData();
     } catch (error) {
@@ -251,7 +256,7 @@ const Tasks = () => {
   // Handle Dependencies Check
   const handleCheckDependencies = async (task) => {
     try {
-      const response = await AxiosInstance.get(`api/tasks/${task.id}/dependencies/`);
+      const response = await AxiosInstance.get(`tasks/${task.id}/dependencies/`);
       setDependencies(response.data);
       setSelectedTask(task);
       setDependenciesDialogOpen(true);
