@@ -20,6 +20,7 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           rsync -avz --delete \
             --exclude '.git' --exclude 'node_modules' --exclude 'venv' --exclude '__pycache__' --exclude '.env' \
+            --exclude 'logs' --exclude '*.log' --exclude 'db.sqlite3' \
             -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
             ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/vc-uy/CD/coordinator-app-2025/
 
