@@ -1,12 +1,13 @@
-import {React, useState} from 'react';
+import { React, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
 import AppBar from '@mui/material/AppBar';
 import CssBaseline from '@mui/material/CssBaseline';
 import Toolbar from '@mui/material/Toolbar';
-import { IconButton, InputBase, Badge, Avatar, MenuItem, MenuList, Popover } from '@mui/material';
+import { IconButton, Badge, Avatar, MenuItem, MenuList, Popover } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import SearchIcon from '@mui/icons-material/Search';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -21,6 +22,8 @@ const shortDrawerWidth = 80;
 export default function Navbar({content}) {
   const [isBigMenu, setIsBigMenu] = useState(true);
   const [anchorEl, setAnchorEl] = useState(null);
+  const { email, logout } = useAuth();
+  const navigate = useNavigate();
 
   const changeMenu = () => {
      setIsBigMenu(!isBigMenu);
@@ -34,6 +37,14 @@ export default function Navbar({content}) {
     setAnchorEl(null);
   };
 
+  const handleLogout = () => {
+    handleUserMenuClose();
+    logout();
+    navigate('/login');
+  };
+
+  const displayName = email ? email.split('@')[0] : 'Coordinateur';
+  const userInitial = displayName.charAt(0).toUpperCase();
   const open = Boolean(anchorEl);
 
   return (
@@ -231,11 +242,11 @@ export default function Navbar({content}) {
                 fontWeight: 700,
               }}
             >
-              A
+              {userInitial}
             </Avatar>
             <Box sx={{ textAlign: 'left' }}>
-              <Typography sx={{ fontSize: '14px', fontWeight: 600 }}>Admin User</Typography>
-              <Typography sx={{ fontSize: '11px', color: '#94A3B8' }}>Coordinator</Typography>
+              <Typography sx={{ fontSize: '14px', fontWeight: 600 }}>{email || 'Coordinateur'}</Typography>
+              <Typography sx={{ fontSize: '11px', color: '#94A3B8' }}>VolunSys-UY1</Typography>
             </Box>
           </Box>
 
@@ -290,7 +301,7 @@ export default function Navbar({content}) {
                 margin: '0 12px',
               }} />
               <MenuItem
-                onClick={handleUserMenuClose}
+                onClick={handleLogout}
                 sx={{
                   padding: '14px 20px',
                   display: 'flex',
@@ -306,7 +317,7 @@ export default function Navbar({content}) {
                 }}
               >
                 <LogoutIcon sx={{ fontSize: 18, color: '#FF4444' }} />
-                Logout
+                Deconnexion
               </MenuItem>
             </MenuList>
           </Popover>

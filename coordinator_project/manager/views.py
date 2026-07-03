@@ -214,6 +214,22 @@ class WorkflowViewSet(viewsets.ViewSet):
     # Liste tous les workflows
     def list(self, request):
         workflows = Workflow.objects.all()
+        owner_id = request.query_params.get('owner')
+        manager_email = request.query_params.get('manager_email')
+        status_filter = request.query_params.get('status')
+
+        if owner_id:
+            try:
+                manager = Manager.objects.get(id=owner_id)
+                workflows = workflows.filter(owner=manager)
+            except Manager.DoesNotExist:
+                workflows = Workflow.objects.none()
+        if manager_email:
+            managers = list(Manager.objects.filter(email=manager_email))
+            workflows = workflows.filter(owner__in=managers) if managers else Workflow.objects.none()
+        if status_filter:
+            workflows = workflows.filter(status=status_filter)
+
         serializer = WorkflowSerializer(workflows, many=True)
         return Response(serializer.data)
 
@@ -431,13 +447,32 @@ class TaskViewSet(viewsets.ViewSet):
 
     # Liste toutes les tâches
     def list(self, request):
-        """Liste toutes les tâches avec possibilité de filtrer par workflow"""
+        """Liste toutes les tâches avec possibilité de filtrer par workflow ou manager"""
         workflow_id = request.query_params.get('workflow', None)
+        owner_id = request.query_params.get('owner')
+        manager_email = request.query_params.get('manager_email')
 
         if workflow_id:
-            tasks = Task.objects.filter(workflow=workflow_id)
+            try:
+                workflow = Workflow.objects.get(id=workflow_id)
+                tasks = Task.objects.filter(workflow=workflow)
+            except Workflow.DoesNotExist:
+                tasks = Task.objects.none()
         else:
             tasks = Task.objects.all()
+
+        managers = []
+        if owner_id:
+            try:
+                managers = [Manager.objects.get(id=owner_id)]
+            except Manager.DoesNotExist:
+                managers = []
+        elif manager_email:
+            managers = list(Manager.objects.filter(email=manager_email))
+
+        if owner_id or manager_email:
+            workflows = list(Workflow.objects.filter(owner__in=managers)) if managers else []
+            tasks = tasks.filter(workflow__in=workflows) if workflows else Task.objects.none()
 
         serializer = TaskSerializer(tasks, many=True)
         return Response(serializer.data)

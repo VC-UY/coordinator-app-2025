@@ -50,13 +50,15 @@ INSTALLED_APPS = [
     'manager',
     'communication',
     'redis_communication.apps.RedisCommunicationConfig',
-    'message_logging'
+    'message_logging',
+    'client_validation',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'coordinator_project.coordinator_auth.CoordinatorAuthMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -72,6 +74,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://173.249.38.251',
     'http://173.249.38.251:5173',
     'http://173.249.38.251:3000',
+    'https://coordinator-vc-uy.npe-techs.com',
 ]
 
 # Allow all methods (GET, POST, etc.) for CORS requests

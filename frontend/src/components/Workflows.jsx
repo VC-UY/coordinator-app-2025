@@ -60,6 +60,15 @@ function Workflows() {
   const columns = useMemo(
     () => [
       { 
+        accessorKey: 'owner_email', 
+        header: 'Manager',
+        Cell: ({ cell, row }) => (
+          <Typography sx={{ color: '#00B0F0', fontSize: '0.85rem' }}>
+            {cell.getValue() || row.original.owner_username || '—'}
+          </Typography>
+        )
+      },
+      { 
         accessorKey: 'name', 
         header: 'Name',
         Cell: ({ cell }) => (

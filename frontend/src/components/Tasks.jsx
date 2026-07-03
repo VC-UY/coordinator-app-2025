@@ -292,16 +292,16 @@ const Tasks = () => {
         )
       },
       {
-        accessorKey: 'workflow',
+        accessorKey: 'workflow_name',
         header: 'Workflow',
         size: 180,
         Cell: ({ row }) => {
-          const workflow = row.original.workflow;
-          if (workflow && typeof workflow === 'object' && workflow.name) {
+          const name = row.original.workflow_name || row.original.workflow;
+          if (name) {
             return (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <AccountTreeIcon sx={{ fontSize: 18, color: '#00B0F0' }} />
-                <Typography sx={{ color: '#001440' }}>{workflow.name}</Typography>
+                <Typography sx={{ color: '#FFFFFF' }}>{name}</Typography>
               </Box>
             );
           }
@@ -309,16 +309,34 @@ const Tasks = () => {
         }
       },
       {
-        accessorKey: 'assigned_to',
+        accessorKey: 'owner_email',
+        header: 'Manager',
+        size: 160,
+        Cell: ({ row }) => (
+          <Typography sx={{ color: '#00B0F0', fontSize: '0.85rem' }}>
+            {row.original.owner_email || row.original.owner_username || '—'}
+          </Typography>
+        )
+      },
+      {
+        accessorKey: 'assigned_to_name',
         header: 'Volontaire',
         size: 150,
         Cell: ({ row }) => {
-          const assigned = row.original.assigned_to;
-          if (assigned && typeof assigned === 'object' && assigned.name) {
+          const name = row.original.assigned_to_name || row.original.assigned_to;
+          if (name && typeof name !== 'object') {
             return (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <PersonIcon sx={{ fontSize: 18, color: '#00D4FF' }} />
-                <Typography sx={{ color: '#001440' }}>{assigned.name}</Typography>
+                <Typography sx={{ color: '#FFFFFF' }}>{name}</Typography>
+              </Box>
+            );
+          }
+          if (name && typeof name === 'object' && name.name) {
+            return (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <PersonIcon sx={{ fontSize: 18, color: '#00D4FF' }} />
+                <Typography sx={{ color: '#FFFFFF' }}>{name.name}</Typography>
               </Box>
             );
           }
