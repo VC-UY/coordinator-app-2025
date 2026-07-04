@@ -202,7 +202,7 @@ def register_handlers(client: RedisClient):
     )
     
     # Importer les gestionnaires de workflow
-    from .workflow_handlers import workflow_submission_handler
+    from .workflow_handlers import workflow_submission_handler, workflow_status_changed_handler
     
     # Définir les gestionnaires pour chaque canal
     handlers = {
@@ -214,6 +214,7 @@ def register_handlers(client: RedisClient):
         
         # Canaux de workflow
         "workflow/submit": workflow_submission_handler,
+        "workflow/status_changed": workflow_status_changed_handler,
         
         # Présence volontaires
         "coord/heartbeat": heartbeat_handler,
