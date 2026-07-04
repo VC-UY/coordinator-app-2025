@@ -148,5 +148,19 @@ class RedisCommunicationConfig(AppConfig):
                 time.sleep(20)
 
         threading.Thread(target=presence_loop, daemon=True, name="volunteer-presence").start()
+
+        def assign_loop():
+            time.sleep(20)
+            while True:
+                try:
+                    from redis_communication.task_assigner import assign_pending_tasks
+                    result = assign_pending_tasks(limit=30)
+                    if result.get('assigned'):
+                        logger.info("Boucle assignation: %s", result.get('message'))
+                except Exception as exc:
+                    logger.warning("Boucle assignation: %s", exc)
+                time.sleep(30)
+
+        threading.Thread(target=assign_loop, daemon=True, name="coord-assign-loop").start()
         
         logger.info("Thread de démarrage automatique du client Redis lancé")

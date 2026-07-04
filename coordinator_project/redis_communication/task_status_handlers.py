@@ -35,6 +35,52 @@ def _notify_frontend(event_type, data):
     except Exception as e:
         logger.error(f"Erreur lors de l'envoi de la notification WS: {e}")
 
+def _apply_task_payload(task, data: Dict[str, Any]) -> None:
+    """Applique les métadonnées reçues du Manager sur une tâche Coordinateur."""
+    task.name = data.get('name', task.name)
+    task.command = data.get('command', task.command or '')
+    task.description = data.get('description', task.description or '')
+    task.required_resources = data.get('required_resources', task.required_resources or {})
+    task.progress = float(data.get('progress') or task.progress or 0)
+    if data.get('parameters') is not None:
+        task.parameters = data.get('parameters') or []
+    if data.get('dependencies') is not None:
+        task.dependencies = data.get('dependencies') or []
+    if data.get('is_subtask') is not None:
+        task.is_subtask = bool(data.get('is_subtask'))
+    if data.get('estimated_execution_time') is not None:
+        task.estimated_execution_time = float(data.get('estimated_execution_time') or 0)
+    if data.get('input_data'):
+        task.input_data = data.get('input_data') or {}
+    if data.get('input_data_size') is not None:
+        task.input_data_size = float(data.get('input_data_size') or 0)
+    if data.get('docker_information'):
+        task.docker_information = dict(data.get('docker_information') or {})
+    meta = dict(task.metadata or {})
+    if data.get('input_files') is not None:
+        meta['input_files'] = data.get('input_files') or []
+    if data.get('output_files') is not None:
+        meta['output_files'] = data.get('output_files') or []
+    if data.get('workflow_type'):
+        meta['workflow_type'] = data.get('workflow_type')
+    task.metadata = meta
+
+
+def _trigger_coordinator_assignment() -> None:
+    """Lance l'assignation en arrière-plan (évite de bloquer le handler Redis)."""
+    import threading
+
+    def _run():
+        try:
+            from redis_communication.task_assigner import assign_pending_tasks
+            result = assign_pending_tasks()
+            logger.info("Assignation coordinateur: %s", result.get("message"))
+        except Exception as exc:
+            logger.warning("Assignation coordinateur échouée: %s", exc)
+
+    threading.Thread(target=_run, daemon=True, name="coord-assign").start()
+
+
 def handle_task_created(channel: str, message: Message):
     """
     Gestionnaire pour l'événement de création d'une tâche par le Manager.
@@ -67,17 +113,11 @@ def handle_task_created(channel: str, message: Message):
         existing_task = Task.objects.filter(id=task_id).first()
         if existing_task:
             logger.info(f"Tâche {task_id} existe déjà, mise à jour")
-            existing_task.name = task_name
             existing_task.status = coord_status
-            existing_task.command = data.get('command', existing_task.command or '')
-            existing_task.description = data.get('description', existing_task.description or '')
-            existing_task.required_resources = data.get(
-                'required_resources', existing_task.required_resources or {}
-            )
-            existing_task.input_files = data.get('input_files', existing_task.input_files or [])
-            existing_task.output_files = data.get('output_files', existing_task.output_files or [])
-            existing_task.progress = float(data.get('progress') or existing_task.progress or 0)
+            _apply_task_payload(existing_task, data)
             existing_task.save()
+            if coord_status == 'PENDING':
+                _trigger_coordinator_assignment()
             return
 
         # Récupérer le workflow
@@ -97,9 +137,19 @@ def handle_task_created(channel: str, message: Message):
             command=data.get('command', ''),
             description=data.get('description', ''),
             required_resources=data.get('required_resources', {}),
-            input_files=data.get('input_files', []),
-            output_files=data.get('output_files', []),
             progress=float(data.get('progress') or 0),
+            parameters=data.get('parameters', []),
+            dependencies=data.get('dependencies', []),
+            is_subtask=bool(data.get('is_subtask', False)),
+            estimated_execution_time=float(data.get('estimated_execution_time') or 0),
+            input_data=data.get('input_data') or {},
+            input_data_size=float(data.get('input_data_size') or 0),
+            docker_information=dict(data.get('docker_information') or {}),
+            metadata={
+                'input_files': data.get('input_files') or [],
+                'output_files': data.get('output_files') or [],
+                'workflow_type': data.get('workflow_type') or getattr(workflow, 'workflow_type', ''),
+            },
         )
         task.save()
 
@@ -119,6 +169,7 @@ def handle_task_created(channel: str, message: Message):
         })
 
         logger.info(f"Tâche {task_id} ({task_name}) créée pour le workflow {workflow_id}")
+        _trigger_coordinator_assignment()
 
     except Exception as e:
         logger.error(f"Erreur lors de la création de la tâche: {e}")
@@ -348,37 +399,78 @@ def handle_task_completed(channel: str, message: Message):
 def handle_task_failed(channel: str, message: Message):
     """
     Gestionnaire pour les échecs de tâches.
+    Les refus de préférences remettent la tâche en file (PENDING).
     """
     try:
-        data = message.data
+        data = message.data or {}
         task_id = data.get('task_id')
         volunteer_id = data.get('volunteer_id')
-        error = data.get('error')
+        error_type = str(data.get('error_type') or '').lower()
+        error = data.get('error_message') or data.get('error') or ''
 
         if not all([task_id, volunteer_id]):
             logger.error("Données manquantes dans la notification d'échec")
             return
 
-        # Mettre à jour l'assignation
-        assignment = TaskAssignment.objects.get(
+        assignment = TaskAssignment.objects.filter(
             task=task_id,
             volunteer=volunteer_id,
-            status__in=['STARTED', 'RESUMED']
-        )
-        assignment.status = 'FAILED'
-        assignment.completed_at = datetime.now(timezone.utc)
-        assignment.failure_reason = error
-        assignment.save()
+            status__in=['ASSIGNED', 'STARTED', 'RESUMED'],
+        ).order_by('-assigned_at').first()
 
-        # Mettre à jour la tâche
-        task = Task.objects.get(id=task_id)
+        task = Task.objects.filter(id=task_id).first()
+        if not task:
+            logger.warning("Tâche %s introuvable pour échec", task_id)
+            return
+
+        requeue = error_type in ('preference_mismatch', 'schedule', 'capacity')
+
+        if requeue:
+            if assignment:
+                assignment.status = 'CANCELLED'
+                assignment.failure_reason = error or error_type
+                assignment.save()
+            task.status = 'PENDING'
+            task.assigned_to = None
+            task.end_time = None
+            task.error_details = {
+                'last_reject': error or error_type,
+                'error_type': error_type,
+                'volunteer_id': str(volunteer_id),
+            }
+            task.save()
+            _notify_frontend('task_status_changed', {
+                'task_id': str(task.id),
+                'task_name': task.name,
+                'status': 'PENDING',
+                'new_status': 'PENDING',
+                'progress': float(task.progress or 0),
+                'workflow_id': str(task.workflow.id) if task.workflow else None,
+            })
+            logger.info(
+                "Tâche %s remise en file (%s): %s",
+                task_id,
+                error_type,
+                error,
+            )
+            from redis_communication.task_status_handlers import (
+                _trigger_coordinator_assignment,
+            )
+            _trigger_coordinator_assignment()
+            return
+
+        if assignment:
+            assignment.status = 'FAILED'
+            assignment.completed_at = datetime.now(timezone.utc)
+            assignment.failure_reason = error
+            assignment.save()
+
         task.status = 'FAILED'
         task.end_time = datetime.now(timezone.utc)
         task.error_details = {'error': error, 'volunteer_id': str(volunteer_id)}
-        task.attempts += 1
+        task.attempts = (task.attempts or 0) + 1
         task.save()
 
-        # Mettre à jour le score du volontaire
         update_volunteer_score(volunteer_id, 'failed', task_id)
 
         logger.error(f"Tâche {task_id} échouée par le volontaire {volunteer_id}: {error}")
@@ -711,9 +803,32 @@ def handle_task_status_sync(channel: str, message: Message):
             'workflow_id': str(workflow.id) if workflow else None,
         })
         logger.info("task/status_sync: %s -> %s", task_id, coord_status)
+        if coord_status == 'PENDING':
+            _trigger_coordinator_assignment()
     except Exception as e:
         logger.error("Erreur task/status_sync: %s", e)
         logger.error(traceback.format_exc())
+
+
+def handle_workflow_tasks_ready(channel: str, message: Message):
+    """Le Manager a fini de publier les tâches — lancer l'assignation."""
+    try:
+        data = message.data or {}
+        workflow_id = data.get('workflow_id')
+        logger.info(
+            "workflow/tasks_ready: workflow %s (%s tâches)",
+            workflow_id,
+            data.get('task_count'),
+        )
+        _trigger_coordinator_assignment()
+    except Exception as exc:
+        logger.error("Erreur workflow/tasks_ready: %s", exc)
+
+
+def handle_assign_request(channel: str, message: Message):
+    """Demande explicite d'assignation (recovery manager, retry, etc.)."""
+    logger.info("coordinator/assign_request reçu")
+    _trigger_coordinator_assignment()
 
 
 def register_handlers(client):
@@ -731,5 +846,7 @@ def register_handlers(client):
     # Handler unifié pour task/status (utilisé par les volontaires)
     client.subscribe('task/status', handle_task_status)
     client.subscribe('task/status_sync', handle_task_status_sync)
+    client.subscribe('workflow/tasks_ready', handle_workflow_tasks_ready)
+    client.subscribe('coordinator/assign_request', handle_assign_request)
 
     logger.info("Gestionnaires de statut des tâches enregistrés (incluant task/status)")
