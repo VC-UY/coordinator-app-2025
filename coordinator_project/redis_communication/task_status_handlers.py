@@ -271,6 +271,7 @@ def handle_task_progress(channel: str, message: Message):
             'old_status': old_status,
             'new_status': task.status,
             'progress': progress,
+            'workflow_id': str(task.workflow.id) if task.workflow else None,
         })
 
     except Exception as e:
@@ -666,26 +667,34 @@ def handle_task_status_sync(channel: str, message: Message):
         if clear_assignment or coord_status in ('PENDING', 'CREATED'):
             task.assigned_to = None
             TaskAssignment.objects(task=task, status='ASSIGNED').update(status='CANCELLED')
-        elif volunteer_id and coord_status == 'ASSIGNED':
+        elif volunteer_id and coord_status in ('ASSIGNED', 'RUNNING'):
             volunteer = Volunteer.objects(id=volunteer_id).first()
             if volunteer:
                 task.assigned_to = volunteer
-                existing = TaskAssignment.objects(task=task, volunteer=volunteer, status='ASSIGNED').first()
+                existing = TaskAssignment.objects(task=task, volunteer=volunteer, status__in=['ASSIGNED', 'STARTED']).first()
                 if not existing:
                     TaskAssignment.objects(task=task, status='ASSIGNED').update(status='CANCELLED')
                     TaskAssignment(
                         task=task,
                         volunteer=volunteer,
-                        status='ASSIGNED',
+                        status='STARTED' if coord_status == 'RUNNING' else 'ASSIGNED',
+                        progress=float(task.progress or 0),
                         assigned_at=datetime.now(timezone.utc),
+                        started_at=datetime.now(timezone.utc) if coord_status == 'RUNNING' else None,
                     ).save()
 
         task.save()
 
         workflow = task.workflow
-        if workflow and coord_status == 'ASSIGNED' and workflow.status in ('CREATED', 'PENDING'):
+        if workflow and coord_status in ('ASSIGNED', 'RUNNING') and workflow.status in ('CREATED', 'PENDING'):
             workflow.status = 'RUNNING'
             workflow.save()
+        elif workflow and coord_status == 'COMPLETED':
+            done = Task.objects(workflow=workflow, status='COMPLETED').count()
+            total = Task.objects(workflow=workflow).count()
+            if total and done >= total:
+                workflow.status = 'COMPLETED'
+                workflow.save()
         elif workflow and coord_status == 'PENDING' and workflow.status == 'RUNNING':
             # Reste RUNNING s'il reste des tâches assignées, sinon PENDING
             still_assigned = Task.objects(workflow=workflow, status__in=['ASSIGNED', 'RUNNING']).count()
@@ -695,7 +704,9 @@ def handle_task_status_sync(channel: str, message: Message):
 
         _notify_frontend('task_status_changed', {
             'task_id': str(task.id),
+            'task_name': task.name,
             'status': task.status,
+            'new_status': task.status,
             'progress': task.progress,
             'workflow_id': str(workflow.id) if workflow else None,
         })
