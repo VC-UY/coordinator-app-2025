@@ -99,6 +99,25 @@ def handle_task_created(channel: str, message: Message):
         logger.error(traceback.format_exc())
 
 
+def _parse_progress(value, default=0.0) -> float:
+    try:
+        return max(0.0, min(100.0, float(value)))
+    except (TypeError, ValueError):
+        return float(default or 0)
+
+
+def _get_task(task_id):
+    return Task.objects.filter(id=task_id).first()
+
+
+def _get_assignment(task_id, volunteer_id):
+    """Retrouve l'assignation active sans filtre de statut trop strict."""
+    qs = TaskAssignment.objects.filter(task=task_id)
+    if volunteer_id:
+        qs = qs.filter(volunteer=volunteer_id)
+    return qs.order_by('-assigned_at').first()
+
+
 def handle_task_started(channel: str, message: Message):
     """
     Gestionnaire pour l'événement de démarrage d'une tâche.
@@ -107,34 +126,53 @@ def handle_task_started(channel: str, message: Message):
         data = message.data
         task_id = data.get('task_id')
         volunteer_id = data.get('volunteer_id')
+        progress = _parse_progress(data.get('progress'), 0)
 
-        if not task_id or not volunteer_id:
-            logger.error("Task ID ou Volunteer ID manquant")
+        if not task_id:
+            logger.error("Task ID manquant")
             return
 
-        # Mettre à jour l'assignation
-        assignment = TaskAssignment.objects.get(
-            task=task_id,
-            volunteer=volunteer_id,
-            status='ASSIGNED'
-        )
-        assignment.status = 'STARTED'
-        assignment.started_at = datetime.now(timezone.utc)
-        assignment.save()
+        task = _get_task(task_id)
+        if not task:
+            logger.error(f"Tâche {task_id} introuvable pour démarrage")
+            return
 
-        # Mettre à jour la tâche
-        task = Task.objects.get(id=task_id)
+        old_status = task.status
         task.status = 'RUNNING'
-        task.start_time = datetime.now(timezone.utc)
+        if not task.start_time:
+            task.start_time = datetime.now(timezone.utc)
+        if progress > task.progress:
+            task.progress = progress
         task.save()
 
-        # Notifier le frontend
+        assignment = _get_assignment(task_id, volunteer_id)
+        if assignment and assignment.status not in ('COMPLETED', 'FAILED', 'TIMEOUT', 'CANCELLED'):
+            if assignment.status in ('ASSIGNED',):
+                assignment.status = 'STARTED'
+            if not assignment.started_at:
+                assignment.started_at = datetime.now(timezone.utc)
+            if progress > (assignment.progress or 0):
+                assignment.progress = progress
+            assignment.save()
+        elif volunteer_id:
+            try:
+                volunteer = Volunteer.objects.get(id=volunteer_id)
+                TaskAssignment(
+                    task=task,
+                    volunteer=volunteer,
+                    status='STARTED',
+                    progress=progress,
+                    started_at=datetime.now(timezone.utc),
+                ).save()
+            except Volunteer.DoesNotExist:
+                logger.warning(f"Volontaire {volunteer_id} introuvable pour démarrage tâche {task_id}")
+
         _notify_frontend('task_status_changed', {
             'task_id': str(task_id),
             'task_name': task.name,
-            'old_status': 'PENDING',
+            'old_status': old_status,
             'new_status': 'RUNNING',
-            'progress': task.progress
+            'progress': task.progress,
         })
 
         logger.info(f"Tâche {task_id} démarrée par le volontaire {volunteer_id}")
@@ -145,79 +183,71 @@ def handle_task_started(channel: str, message: Message):
 
 def handle_task_progress(channel: str, message: Message):
     """
-    Gère la mise à jour du progrès d'une tâche
+    Gère la mise à jour du progrès d'une tâche (source de vérité partagée).
     """
     try:
-        data = message.data
+        data = message.data or {}
         task_id = data.get('task_id')
         volunteer_id = data.get('volunteer_id')
-        progress = data.get('progress', 0)
-        
-        # Vérifier les données requises
-        if not all([task_id, volunteer_id]):
+        progress = _parse_progress(data.get('progress'), 0)
+
+        if not task_id:
             logger.error("Données manquantes dans le message de progression")
             return
-            
-        try:
-            # Rechercher l'assignation
-            assignment = TaskAssignment.objects.get(
-                task=task_id,
-                volunteer=volunteer_id,
-                status__in=['ASSIGNED', 'STARTED', 'RESUMED']  # Ajout des états valides
-            )
-            
-            # Mettre à jour le progrès
+
+        task = _get_task(task_id)
+        if not task:
+            logger.error(f"Tâche {task_id} introuvable pour progression")
+            return
+
+        old_status = task.status
+        task.progress = progress
+        if progress > 0 and task.status in ('PENDING', 'ASSIGNED', 'CREATED'):
+            task.status = 'RUNNING'
+            if not task.start_time:
+                task.start_time = datetime.now(timezone.utc)
+        if progress >= 100 and task.status not in ('FAILED', 'CANCELLED'):
+            # Ne force pas COMPLETED ici (réservé à task/completed / status completed)
+            pass
+        task.save()
+
+        assignment = _get_assignment(task_id, volunteer_id)
+        if assignment and assignment.status not in ('COMPLETED', 'FAILED', 'TIMEOUT', 'CANCELLED'):
             assignment.progress = progress
             if progress > 0 and assignment.status == 'ASSIGNED':
                 assignment.status = 'STARTED'
-                assignment.started_at = datetime.now(timezone.utc)
+                if not assignment.started_at:
+                    assignment.started_at = datetime.now(timezone.utc)
             assignment.save()
-            
-            # Mettre à jour la tâche elle-même
-            task = assignment.task
-            task.progress = progress
-            task.save()
-            
-            logger.info(f"Progression mise à jour - Tâche: {task_id}, Progrès: {progress}%")
-            
-            # Notifier le frontend
-            _notify_frontend('task_status_changed', {
-                'task_id': str(task_id),
-                'task_name': task.name,
-                'old_status': task.status,  # Status actuel (peut être inchangé)
-                'new_status': task.status,
-                'progress': progress
-            })
-            
-        except TaskAssignment.DoesNotExist:
-            # Créer une nouvelle assignation si elle n'existe pas
-            logger.warning(f"Assignation non trouvée pour tâche={task_id}, volontaire={volunteer_id}")
+        elif volunteer_id:
             try:
-                task = Task.objects.get(id=task_id)
                 volunteer = Volunteer.objects.get(id=volunteer_id)
-                
-                assignment = TaskAssignment(
+                TaskAssignment(
                     task=task,
                     volunteer=volunteer,
                     status='STARTED',
                     progress=progress,
-                    started_at=datetime.now(timezone.utc)
-                )
-                assignment.save()
-                
-                # Mettre à jour la tâche
-                task.progress = progress
+                    started_at=datetime.now(timezone.utc),
+                ).save()
                 task.assigned_to = volunteer
                 task.save()
-                
-                logger.info(f"Nouvelle assignation créée pour la tâche {task_id}")
-                
-            except (Task.DoesNotExist, Volunteer.DoesNotExist) as e:
-                logger.error(f"Impossible de créer l'assignation: {str(e)}")
-                return
-                
+            except Volunteer.DoesNotExist:
+                logger.warning(
+                    "Progression tâche %s: volontaire %s inconnu (Task.progress=%s)",
+                    task_id, volunteer_id, progress,
+                )
+
+        logger.info("Progression synchronisée — tâche %s: %s%%", task_id, progress)
+
+        _notify_frontend('task_status_changed', {
+            'task_id': str(task_id),
+            'task_name': task.name,
+            'old_status': old_status,
+            'new_status': task.status,
+            'progress': progress,
+        })
+
     except Exception as e:
-        import traceback
         logger.error(f"Erreur lors du traitement du progrès: {str(e)}")
         logger.error(traceback.format_exc())
 
@@ -229,46 +259,58 @@ def handle_task_completed(channel: str, message: Message):
         data = message.data
         task_id = data.get('task_id')
         volunteer_id = data.get('volunteer_id')
-        results = data.get('results', {})
+        results = data.get('results', {}) or data.get('file_server', {}) or {}
 
-        if not all([task_id, volunteer_id]):
+        if not task_id:
             logger.error("Données manquantes dans la notification de complétion")
             return
 
         now = datetime.now(timezone.utc)
+        task = _get_task(task_id)
+        if not task:
+            logger.error(f"Tâche {task_id} introuvable pour complétion")
+            return
 
-        # Mettre à jour l'assignation
-        assignment = TaskAssignment.objects.get(
-            task=task_id,
-            volunteer=volunteer_id,
-            status__in=['STARTED', 'RESUMED']
-        )
-        assignment.status = 'COMPLETED'
-        assignment.completed_at = now
-        assignment.progress = 100
-        if assignment.started_at:
-            assignment.completion_time = (now - assignment.started_at).total_seconds()
-        assignment.save()
-
-        # Mettre à jour la tâche
-        task = Task.objects.get(id=task_id)
+        old_status = task.status
         task.status = 'COMPLETED'
         task.progress = 100
         task.end_time = now
-        task.results = results
+        if results:
+            task.results = results
         task.save()
 
-        # Notifier le frontend
+        assignment = _get_assignment(task_id, volunteer_id)
+        if assignment:
+            assignment.status = 'COMPLETED'
+            assignment.completed_at = now
+            assignment.progress = 100
+            if assignment.started_at:
+                assignment.completion_time = (now - assignment.started_at).total_seconds()
+            assignment.save()
+        elif volunteer_id:
+            try:
+                volunteer = Volunteer.objects.get(id=volunteer_id)
+                TaskAssignment(
+                    task=task,
+                    volunteer=volunteer,
+                    status='COMPLETED',
+                    progress=100,
+                    started_at=now,
+                    completed_at=now,
+                ).save()
+            except Volunteer.DoesNotExist:
+                pass
+
         _notify_frontend('task_status_changed', {
             'task_id': str(task_id),
             'task_name': task.name,
-            'old_status': 'RUNNING',
+            'old_status': old_status,
             'new_status': 'COMPLETED',
-            'progress': 100
+            'progress': 100,
         })
 
-        # Mettre à jour le score du volontaire
-        update_volunteer_score(volunteer_id, 'completed', task_id)
+        if volunteer_id:
+            update_volunteer_score(volunteer_id, 'completed', task_id)
 
         logger.info(f"Tâche {task_id} terminée avec succès par le volontaire {volunteer_id}")
 
@@ -461,8 +503,12 @@ def handle_task_status(channel: str, message: Message):
         elif status == 'paused':
             handle_task_paused(channel, message)
 
-        elif status in ['progress', 'running']:
-            handle_task_started(channel, message)
+        elif status in ['progress', 'running', 'started']:
+            # Progression éventuelle dans le même message
+            if data.get('progress') is not None:
+                handle_task_progress(channel, message)
+            else:
+                handle_task_started(channel, message)
 
         elif status == 'resumed':
             handle_task_resumed(channel, message)

@@ -54,7 +54,8 @@ export default function Tasks() {
 
   useEffect(() => {
     load();
-    const timer = setInterval(load, 10000);
+    // Rafraîchir souvent pour rester aligné avec Manager / volontaires
+    const timer = setInterval(load, 4000);
     return () => clearInterval(timer);
   }, [load]);
 

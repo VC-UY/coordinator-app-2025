@@ -250,9 +250,34 @@ def heartbeat_handler(channel: str, message: Message):
         channel: Canal sur lequel le message a été reçu
         message: Message reçu
     """
-    sender_type = message.sender.get('type', 'unknown')
-    sender_id = message.sender.get('id', 'unknown')
+    sender = message.sender if isinstance(message.sender, dict) else {}
+    sender_type = sender.get('type', 'unknown')
+    sender_id = sender.get('id', 'unknown')
+    data = message.data or {}
+    volunteer_id = data.get('volunteer_id') or (sender_id if sender_type == 'volunteer' else None)
+    if volunteer_id:
+        try:
+            from volunteer.presence import mark_online
+            mark_online(volunteer_id, status=data.get('status') or 'available')
+        except Exception as exc:
+            logger.warning("Heartbeat volontaire ignore: %s", exc)
     logger.debug(f"Heartbeat reçu de {sender_type}:{sender_id}")
+
+
+def volunteer_heartbeat_handler(channel: str, message: Message):
+    heartbeat_handler(channel, message)
+
+
+def volunteer_disconnect_handler(channel: str, message: Message):
+    data = message.data or {}
+    sender = message.sender if isinstance(message.sender, dict) else {}
+    volunteer_id = data.get('volunteer_id') or sender.get('id')
+    if volunteer_id:
+        try:
+            from volunteer.presence import mark_offline
+            mark_offline(volunteer_id, reason='disconnect')
+        except Exception as exc:
+            logger.warning("Disconnect volontaire ignore: %s", exc)
 
 def error_handler(channel: str, message: Message):
     """
@@ -984,6 +1009,8 @@ def volunteer_login_handler(channel: str, message: Message):
 DEFAULT_HANDLERS = {
     # Canaux génériques
     "coord/heartbeat": heartbeat_handler,
+    "volunteer/heartbeat": volunteer_heartbeat_handler,
+    "volunteer/disconnect": volunteer_disconnect_handler,
     "coord/emergency": error_handler,
     "system/error": error_handler,
     

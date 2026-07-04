@@ -81,12 +81,17 @@ def get_available_volunteers() -> List[Dict[str, Any]]:
         List[Dict[str, Any]]: Liste des volontaires avec leurs informations de ressources et scores de confiance
     """
     try:
-        # Récupérer tous les volontaires avec le statut 'available'
-        volunteers = Volunteer.objects.filter(current_status='available')
+        from volunteer.presence import is_online, sweep_stale_volunteers
+
+        sweep_stale_volunteers()
+        # Uniquement les volontaires réellement en ligne (heartbeat récent)
+        volunteers = Volunteer.objects.filter(current_status__in=['available', 'busy'])
         
         # Formater les données des volontaires pour le workflow
         formatted_volunteers = []
         for volunteer in volunteers:
+            if not is_online(volunteer):
+                continue
             # Récupérer les données de performance
             performance = volunteer.performance if hasattr(volunteer, 'performance') and volunteer.performance else {}
             
