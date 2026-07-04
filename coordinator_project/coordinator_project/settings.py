@@ -158,6 +158,8 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
+# Fuseau pour les plages horaires volontaires (aligné app Volontaire en France)
+VOLUNTEER_SCHEDULE_TZ = 'Europe/Paris'
 
 USE_I18N = True
 

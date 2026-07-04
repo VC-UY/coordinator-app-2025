@@ -84,13 +84,21 @@ def get_available_volunteers() -> List[Dict[str, Any]]:
         from volunteer.presence import is_online, sweep_stale_volunteers
 
         sweep_stale_volunteers()
-        # Uniquement les volontaires réellement en ligne (heartbeat récent)
-        volunteers = Volunteer.objects.filter(current_status__in=['available', 'busy'])
-        
-        # Formater les données des volontaires pour le workflow
+        from redis_communication.volunteer_matching import (
+            is_within_schedule,
+            volunteer_is_assignable,
+        )
+
+        volunteers = Volunteer.objects.filter(current_status="available")
+
         formatted_volunteers = []
         for volunteer in volunteers:
             if not is_online(volunteer):
+                continue
+            if not volunteer_is_assignable(volunteer):
+                continue
+            prefs = getattr(volunteer, "preferences", None) or {}
+            if prefs.get("schedule") and not is_within_schedule(prefs):
                 continue
             # Récupérer les données de performance
             performance = volunteer.performance if hasattr(volunteer, 'performance') and volunteer.performance else {}
@@ -105,6 +113,7 @@ def get_available_volunteers() -> List[Dict[str, Any]]:
             formatted_volunteer = {
                 "volunteer_id": str(volunteer.id),
                 "username": volunteer.username,
+                "preferences": prefs,
                 "resources": {
                     "cpu_cores": volunteer.cpu_cores,
                     "memory_mb": volunteer.total_ram,
