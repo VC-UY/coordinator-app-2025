@@ -50,13 +50,33 @@ def handle_task_created(channel: str, message: Message):
             logger.error(f"Task ID ou Workflow ID manquant dans task/created: {data}")
             return
 
+        # Normaliser les statuts Manager -> Coordinateur
+        status = str(data.get('status', 'PENDING')).upper()
+        status_map = {
+            'CREATED': 'PENDING',
+            'PENDING': 'PENDING',
+            'ASSIGNED': 'ASSIGNED',
+            'RUNNING': 'RUNNING',
+            'STARTED': 'RUNNING',
+            'COMPLETED': 'COMPLETED',
+            'FAILED': 'FAILED',
+        }
+        coord_status = status_map.get(status, 'PENDING')
+
         # Vérifier si la tâche existe déjà
         existing_task = Task.objects.filter(id=task_id).first()
         if existing_task:
             logger.info(f"Tâche {task_id} existe déjà, mise à jour")
             existing_task.name = task_name
-            existing_task.status = data.get('status', 'PENDING')
-            existing_task.command = data.get('command', '')
+            existing_task.status = coord_status
+            existing_task.command = data.get('command', existing_task.command or '')
+            existing_task.description = data.get('description', existing_task.description or '')
+            existing_task.required_resources = data.get(
+                'required_resources', existing_task.required_resources or {}
+            )
+            existing_task.input_files = data.get('input_files', existing_task.input_files or [])
+            existing_task.output_files = data.get('output_files', existing_task.output_files or [])
+            existing_task.progress = float(data.get('progress') or existing_task.progress or 0)
             existing_task.save()
             return
 
@@ -73,14 +93,20 @@ def handle_task_created(channel: str, message: Message):
             id=task_id,
             name=task_name,
             workflow=workflow,
-            status=data.get('status', 'PENDING'),
+            status=coord_status,
             command=data.get('command', ''),
             description=data.get('description', ''),
             required_resources=data.get('required_resources', {}),
             input_files=data.get('input_files', []),
             output_files=data.get('output_files', []),
+            progress=float(data.get('progress') or 0),
         )
         task.save()
+
+        # Mettre à jour le compteur implicite: statut workflow au moins PENDING/RUNNING
+        if workflow.status in ('CREATED', None, ''):
+            workflow.status = 'PENDING'
+            workflow.save()
 
         # Notifier le frontend
         _notify_frontend('task_created', {

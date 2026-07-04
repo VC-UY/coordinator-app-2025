@@ -58,22 +58,41 @@ def workflow_submission_handler(channel: str, message: Message):
             }
 
 
-        # Enregistrer le workflow dans la base de données
+        # Enregistrer ou mettre à jour le workflow (resoumission possible)
         from manager.models import Workflow, Manager
         manager = Manager.objects.get(id=owner)
-        workflow = Workflow(
-            id=workflow_id,
-            name=workflow_name,
-            description=data.get('description', ''),
-            workflow_type=workflow_type,
-            owner=manager,
-            estimated_resources=estimated_resources,
-            priority=data.get('priority', 1),
-            attempts=data.get('attempts', 3),  # Nombre de tentatives en cas d'échec
-            max_execution_time=data.get('max_execution_time', 3600),  # Temps maximum d'exécution en secondes
-            input_data_size=data.get('input_data_size', 0),
-        )
-        workflow.save()        
+        workflow = Workflow.objects(id=workflow_id).first()
+        if workflow:
+            # Resoumission: supprimer les anciennes tâches pour éviter un compteur faux
+            try:
+                from manager.models import Task
+                Task.objects(workflow=workflow).delete()
+            except Exception as del_err:
+                logger.warning("Nettoyage tâches workflow %s: %s", workflow_id, del_err)
+            workflow.name = workflow_name or workflow.name
+            workflow.description = data.get('description', workflow.description or '')
+            workflow.workflow_type = workflow_type or workflow.workflow_type
+            workflow.owner = manager
+            workflow.estimated_resources = estimated_resources
+            workflow.priority = data.get('priority', workflow.priority or 1)
+            workflow.status = 'PENDING'
+            workflow.updated_at = datetime.now(dt_timezone.utc)
+            workflow.save()
+        else:
+            workflow = Workflow(
+                id=workflow_id,
+                name=workflow_name,
+                description=data.get('description', ''),
+                workflow_type=workflow_type,
+                owner=manager,
+                estimated_resources=estimated_resources,
+                priority=data.get('priority', 1),
+                attempts=data.get('attempts', 3),
+                max_execution_time=data.get('max_execution_time', 3600),
+                input_data_size=data.get('input_data_size', 0),
+                status='PENDING',
+            )
+            workflow.save()
 
 
         
@@ -132,6 +151,46 @@ def workflow_submission_handler(channel: str, message: Message):
 
         except Exception as inner_e:
             logger.error(f"Erreur lors de l'envoi de la réponse d'erreur: {inner_e}")
+
+
+def workflow_status_changed_handler(channel: str, message: Message):
+    """Met à jour le statut d'un workflow côté Coordinateur."""
+    try:
+        data = message.data or {}
+        workflow_id = data.get('workflow_id')
+        status = data.get('status')
+        if not workflow_id or not status:
+            return
+        from manager.models import Workflow
+        workflow = Workflow.objects(id=workflow_id).first()
+        if not workflow:
+            logger.warning("workflow/status_changed: workflow %s introuvable", workflow_id)
+            return
+        # Normaliser CREATED/SUBMITTING etc.
+        status_map = {
+            'CREATED': 'CREATED',
+            'SUBMITTED': 'PENDING',
+            'SUBMITTING': 'PENDING',
+            'SPLITTING': 'SPLITTING',
+            'SPLIT_COMPLETED': 'PENDING',
+            'ASSIGNING': 'ASSIGNING',
+            'PENDING': 'PENDING',
+            'RUNNING': 'RUNNING',
+            'COMPLETED': 'COMPLETED',
+            'FAILED': 'FAILED',
+            'PARTIAL_FAILURE': 'PARTIAL_FAILURE',
+            'AGGREGATING': 'AGGREGATING',
+            'REASSIGNING': 'REASSIGNING',
+        }
+        workflow.status = status_map.get(str(status).upper(), str(status).upper())
+        workflow.updated_at = datetime.now(dt_timezone.utc)
+        if data.get('name'):
+            workflow.name = data['name']
+        workflow.save()
+        logger.info("Workflow %s statut coordinateur -> %s", workflow_id, workflow.status)
+    except Exception as e:
+        logger.error("Erreur workflow/status_changed: %s", e)
+        logger.error(traceback.format_exc())
 
 
 def workflow_stop_handler(channel: str, message: Message):
