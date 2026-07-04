@@ -176,6 +176,9 @@ def task_assignment_handler(channel: str, message: Message):
                         )
                         task.save()
 
+                    # Remplacer une ancienne assignation active éventuelle
+                    TaskAssignment.objects(task=task, status='ASSIGNED').update(status='CANCELLED')
+
                     # Créer l'assignation
                     assignment = TaskAssignment(
                         task=task,
@@ -185,8 +188,22 @@ def task_assignment_handler(channel: str, message: Message):
                     )
                     assignment.save()
 
-                    # Mettre à jour la tâche
+                    # Mettre à jour la tâche (statut ASSIGNED, pas PENDING)
                     task.assigned_to = volunteer
+                    task.status = 'ASSIGNED'
+                    task.progress = float(task_data.get('progress') or task.progress or 0)
+                    if task_data.get('name'):
+                        task.name = task_data['name']
+                    if task_data.get('command'):
+                        task.command = task_data['command']
+                    if task_data.get('required_resources'):
+                        task.required_resources = task_data['required_resources']
+                    if task_data.get('estimated_execution_time') is not None:
+                        task.estimated_execution_time = task_data['estimated_execution_time']
+                    if task_data.get('input_data'):
+                        task.input_data = task_data['input_data']
+                    if task_data.get('docker_information'):
+                        task.docker_information = dict(task_data['docker_information'])
                     task.save()
 
                     # Mettre à jour le volontaire
@@ -195,6 +212,11 @@ def task_assignment_handler(channel: str, message: Message):
                         volunteer.performance = {}
                     volunteer.performance['tasks_total'] = volunteer.performance.get('tasks_total', 0) + 1
                     volunteer.save()
+
+                    # Workflow au moins RUNNING dès qu'une tâche est assignée
+                    if workflow.status in ('CREATED', 'PENDING', None, ''):
+                        workflow.status = 'RUNNING'
+                        workflow.save()
 
                     logger.info(f"Tâche {task_id} assignée au volontaire {volunteer_id}")
 

@@ -627,6 +627,84 @@ def _handle_task_output_files(task_id: str, volunteer_id: str, workflow_id: str,
         logger.error(traceback.format_exc())
 
 
+def handle_task_status_sync(channel: str, message: Message):
+    """
+    Synchronise le statut d'une tâche depuis le Manager (file d'attente / assignation).
+    """
+    try:
+        data = message.data or {}
+        task_id = data.get('task_id')
+        status = str(data.get('status') or '').upper()
+        if not task_id or not status:
+            return
+
+        status_map = {
+            'CREATED': 'PENDING',
+            'PENDING': 'PENDING',
+            'ASSIGNED': 'ASSIGNED',
+            'RUNNING': 'RUNNING',
+            'STARTED': 'RUNNING',
+            'COMPLETED': 'COMPLETED',
+            'FAILED': 'FAILED',
+        }
+        coord_status = status_map.get(status, status)
+
+        task = Task.objects(id=task_id).first()
+        if not task:
+            logger.warning("task/status_sync: tâche %s introuvable", task_id)
+            return
+
+        task.status = coord_status
+        if data.get('progress') is not None:
+            task.progress = float(data.get('progress') or 0)
+        if data.get('name'):
+            task.name = data['name']
+
+        clear_assignment = bool(data.get('clear_assignment'))
+        volunteer_id = data.get('volunteer_id')
+
+        if clear_assignment or coord_status in ('PENDING', 'CREATED'):
+            task.assigned_to = None
+            TaskAssignment.objects(task=task, status='ASSIGNED').update(status='CANCELLED')
+        elif volunteer_id and coord_status == 'ASSIGNED':
+            volunteer = Volunteer.objects(id=volunteer_id).first()
+            if volunteer:
+                task.assigned_to = volunteer
+                existing = TaskAssignment.objects(task=task, volunteer=volunteer, status='ASSIGNED').first()
+                if not existing:
+                    TaskAssignment.objects(task=task, status='ASSIGNED').update(status='CANCELLED')
+                    TaskAssignment(
+                        task=task,
+                        volunteer=volunteer,
+                        status='ASSIGNED',
+                        assigned_at=datetime.now(timezone.utc),
+                    ).save()
+
+        task.save()
+
+        workflow = task.workflow
+        if workflow and coord_status == 'ASSIGNED' and workflow.status in ('CREATED', 'PENDING'):
+            workflow.status = 'RUNNING'
+            workflow.save()
+        elif workflow and coord_status == 'PENDING' and workflow.status == 'RUNNING':
+            # Reste RUNNING s'il reste des tâches assignées, sinon PENDING
+            still_assigned = Task.objects(workflow=workflow, status__in=['ASSIGNED', 'RUNNING']).count()
+            if still_assigned == 0:
+                workflow.status = 'PENDING'
+                workflow.save()
+
+        _notify_frontend('task_status_changed', {
+            'task_id': str(task.id),
+            'status': task.status,
+            'progress': task.progress,
+            'workflow_id': str(workflow.id) if workflow else None,
+        })
+        logger.info("task/status_sync: %s -> %s", task_id, coord_status)
+    except Exception as e:
+        logger.error("Erreur task/status_sync: %s", e)
+        logger.error(traceback.format_exc())
+
+
 def register_handlers(client):
     """
     Enregistre les gestionnaires d'événements pour le statut des tâches.
@@ -641,5 +719,6 @@ def register_handlers(client):
     client.subscribe('task/timeout', handle_task_timeout)
     # Handler unifié pour task/status (utilisé par les volontaires)
     client.subscribe('task/status', handle_task_status)
+    client.subscribe('task/status_sync', handle_task_status_sync)
 
     logger.info("Gestionnaires de statut des tâches enregistrés (incluant task/status)")
