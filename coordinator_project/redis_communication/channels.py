@@ -193,7 +193,12 @@ def register_handlers(client: RedisClient):
         manager_registration_handler,
         manager_login_handler,
         volunteer_registration_handler,
-        volunteer_login_handler
+        volunteer_login_handler,
+        heartbeat_handler,
+        volunteer_heartbeat_handler,
+        volunteer_disconnect_handler,
+        error_handler,
+        DEFAULT_HANDLERS,
     )
     
     # Importer les gestionnaires de workflow
@@ -210,16 +215,16 @@ def register_handlers(client: RedisClient):
         # Canaux de workflow
         "workflow/submit": workflow_submission_handler,
         
-        # Canaux système
-        "system/error": lambda channel, message: \
-            print(f"Erreur système reçue: {message.data}"),
-        
-        # Canaux de coordination
-        "coord/heartbeat": lambda channel, message: \
-            print(f"Heartbeat reçu de {message.sender['type']}:{message.sender['id']}"),
-        "coord/emergency": lambda channel, message: \
-            print(f"URGENCE: {message.data} reçu de {message.sender['type']}:{message.sender['id']}")
+        # Présence volontaires
+        "coord/heartbeat": heartbeat_handler,
+        "volunteer/heartbeat": volunteer_heartbeat_handler,
+        "volunteer/disconnect": volunteer_disconnect_handler,
+        "system/error": error_handler,
+        "coord/emergency": error_handler,
     }
+    # Compléter avec les handlers par défaut (sans écraser)
+    for channel, handler in DEFAULT_HANDLERS.items():
+        handlers.setdefault(channel, handler)
     
     # S'abonner à tous les canaux
     for channel, handler in handlers.items():

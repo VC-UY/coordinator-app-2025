@@ -21,24 +21,28 @@ class RedisCommunicationConfig(AppConfig):
         Méthode appelée au démarrage de l'application Django.
         Initialise le client Redis et tente de le démarrer automatiquement.
         """
-        # Ne pas exécuter en mode commande (sauf pour runserver ou daphne)
+        # Ne pas exécuter en mode commande (migrate, shell, etc.)
         import sys
 
-        # Vérifier si c'est une commande Django (ni runserver ni daphne)
-        is_management_command = 'manage.py' in sys.argv[0] if sys.argv else False
+        argv0 = sys.argv[0] if sys.argv else ''
+        is_management_command = 'manage.py' in argv0
         is_runserver = 'runserver' in sys.argv
         is_daphne = any('daphne' in arg for arg in sys.argv)
+        is_gunicorn = 'gunicorn' in argv0 or bool(os.environ.get('GUNICORN_CMD_ARGS'))
 
         if is_management_command and not is_runserver:
             return
 
-        # Éviter les doubles chargements avec le reloader Django
-        # SAUF si --noreload est utilisé ou si c'est daphne
-        using_noreload = '--noreload' in sys.argv or is_daphne
-        if not using_noreload and os.environ.get('RUN_MAIN') != 'true':
+        # Éviter le process parent du reloader Django uniquement
+        if is_runserver and os.environ.get('RUN_MAIN') != 'true':
             return
-        
-        logger.info(f"Initialisation de redis_communication (noreload={using_noreload}, RUN_MAIN={os.environ.get('RUN_MAIN')})")
+
+        logger.info(
+            "Initialisation de redis_communication (daphne=%s, gunicorn=%s, runserver=%s)",
+            is_daphne,
+            is_gunicorn,
+            is_runserver,
+        )
         
         # Importer ici pour éviter les imports circulaires
         from .client import RedisClient
@@ -72,9 +76,6 @@ class RedisCommunicationConfig(AppConfig):
             from .task_status_handlers import register_handlers as register_task_status_handlers
             register_task_status_handlers(client)
             logger.info("Gestionnaires de statut des tâches enregistrés")
-        except Exception as e:
-            logger.error(f"Erreur lors de l'enregistrement des gestionnaires de statut des tâches: {e}")
-        
         except Exception as e:
             logger.error(f"Erreur lors de l'enregistrement des gestionnaires de statut des tâches: {e}")
 
@@ -133,5 +134,19 @@ class RedisCommunicationConfig(AppConfig):
         startup_thread = threading.Thread(target=lambda: (time.sleep(5), start_redis_client_with_retry()))
         startup_thread.daemon = True
         startup_thread.start()
+
+        def presence_loop():
+            time.sleep(12)
+            while True:
+                try:
+                    from volunteer.presence import sweep_stale_volunteers
+                    n = sweep_stale_volunteers()
+                    if n:
+                        logger.info("Presence: %s volontaire(s) marques offline", n)
+                except Exception as exc:
+                    logger.warning("Presence sweep: %s", exc)
+                time.sleep(20)
+
+        threading.Thread(target=presence_loop, daemon=True, name="volunteer-presence").start()
         
         logger.info("Thread de démarrage automatique du client Redis lancé")

@@ -80,6 +80,15 @@ class CoordinatorAuthMiddleware:
         '/api/internal/managers/',
     )
 
+    # Lecture seule pour services internes (site public, manager)
+    INTERNAL_READ_PREFIXES = (
+        '/api/volunteers/',
+        '/api/tasks/',
+        '/api/workflows/',
+        '/api/managers/',
+        '/api/system-health/',
+    )
+
     def __init__(self, get_response):
         self.get_response = get_response
 
@@ -88,6 +97,21 @@ class CoordinatorAuthMiddleware:
         if request.method == 'OPTIONS':
             return self.get_response(request)
         if path.startswith('/api/') and not any(path.startswith(p) for p in self.OPEN_PATHS):
+            # Token service-to-service (stable, ne depend pas du login dashboard)
+            internal = os.environ.get('COORDINATOR_INTERNAL_TOKEN', '').strip()
+            provided = (
+                request.headers.get('X-Internal-Token', '')
+                or request.headers.get('X-Coordinator-Internal-Token', '')
+            ).strip()
+            if (
+                internal
+                and provided
+                and provided == internal
+                and request.method in ('GET', 'HEAD')
+                and any(path.startswith(p) for p in self.INTERNAL_READ_PREFIXES)
+            ):
+                return self.get_response(request)
+
             auth = request.headers.get('Authorization', '')
             if not auth.startswith('Bearer '):
                 return JsonResponse({'detail': 'Authentification requise.'}, status=401)

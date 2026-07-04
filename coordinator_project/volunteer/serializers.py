@@ -34,11 +34,17 @@ class VolunteerSerializer(serializers.Serializer):
         return instance
 
     def to_representation(self, instance):
+        from volunteer.presence import is_online
+
+        online = is_online(instance)
+        # Afficher offline si pas de heartbeat récent, même si le champ DB est périmé
+        status = instance.current_status if online else 'offline'
         return {
             'id': str(instance.id),
             'name': instance.name,
             'username': getattr(instance, 'username', None),
-            'current_status': instance.current_status,
+            'current_status': status,
+            'is_online': online,
             'cpu_model': getattr(instance, 'cpu_model', None),
             'cpu_cores': getattr(instance, 'cpu_cores', None),
             'total_ram': getattr(instance, 'total_ram', None),
@@ -53,5 +59,6 @@ class VolunteerSerializer(serializers.Serializer):
             'preferences': getattr(instance, 'preferences', {}) or {},
             'performance': getattr(instance, 'performance', {}) or {},
             'last_activity': getattr(instance, 'last_activity', None),
+            'last_seen': getattr(instance, 'last_activity', None),
             'is_active': getattr(instance, 'is_active', True),
         }
