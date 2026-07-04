@@ -8,6 +8,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { Link, useSearchParams } from 'react-router-dom';
 import { fetchWorkflowsWithTasks, fetchManagers } from './apiHome';
+import { useCoordinatorRealtime } from '../hooks/useCoordinatorRealtime';
 
 const cardSx = {
   p: 3,
@@ -66,9 +67,14 @@ export default function Workflows() {
 
   useEffect(() => {
     load();
-    const timer = setInterval(load, 10000);
+    const timer = setInterval(load, 60000);
     return () => clearInterval(timer);
   }, [load]);
+
+  const { connected } = useCoordinatorRealtime({
+    onTaskEvent: () => load(),
+    onWorkflowEvent: () => load(),
+  });
 
   const filtered = useMemo(() => {
     return workflows.filter((wf) => {
