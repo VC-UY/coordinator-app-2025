@@ -31,6 +31,55 @@ logger = logging.getLogger(__name__)
 PENDING_STATUSES = ("PENDING", "CREATED")
 
 
+def _public_coordinator_host() -> str:
+    """Adresse joignable par les volontaires externes (pas l'IP Docker interne)."""
+    import os
+
+    host = (
+        os.environ.get("COORDINATOR_PUBLIC_IP")
+        or getattr(settings, "COORDINATOR_PUBLIC_IP", None)
+        or os.environ.get("COORDINATOR_PUBLIC_HOST")
+        or getattr(settings, "COORDINATOR_PUBLIC_HOST", None)
+    )
+    if host:
+        return str(host)
+    # Dériver depuis l'URL publique si configurée
+    url = getattr(settings, "COORDINATOR_PUBLIC_URL", "") or os.environ.get(
+        "COORDINATOR_PUBLIC_URL", ""
+    )
+    if url:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(url if "://" in url else f"https://{url}")
+        if parsed.hostname:
+            return parsed.hostname
+    return "173.249.38.251"
+
+
+def _rewrite_input_data_for_volunteer(
+    input_data: Dict[str, Any], workflow_id: str
+) -> Dict[str, Any]:
+    """Réécrit file_server pour que le volontaire distant puisse télécharger les entrées."""
+    if not input_data:
+        return input_data or {}
+    data = dict(input_data)
+    fs = data.get("file_server")
+    if not fs or not workflow_id:
+        return data
+    host = _public_coordinator_host()
+    port = int(getattr(settings, "COORDINATOR_FILE_PORT", 8410))
+    proxy_task_id = f"input_{workflow_id}"
+    data["file_server"] = {
+        **fs,
+        "host": host,
+        "port": port,
+        "base_url": f"http://{host}:{port}",
+        "path": f"/files/{proxy_task_id}/",
+        "_routed_by": "coordinator_file_proxy",
+    }
+    return data
+
+
 def _volunteer_proxy_redis() -> redis.Redis:
     """Redis vu par les volontaires externes (proxy 6380)."""
     host = getattr(settings, "VOLUNTEER_REDIS_HOST", "coordinator-proxy")
@@ -121,6 +170,8 @@ def _build_assignment_payload(task: Task, volunteer_id: str) -> Dict[str, Any]:
     wf = task.workflow
     meta = task.metadata or {}
     input_data = task.input_data or meta.get("input_data") or {}
+    wf_id = str(wf.id) if wf else ""
+    input_data = _rewrite_input_data_for_volunteer(input_data, wf_id)
     return {
         "task_id": str(task.id),
         "name": task.name,
@@ -251,3 +302,77 @@ def assign_pending_tasks(limit: int = 50) -> Dict[str, Any]:
         else "Aucune assignation (capacité/préférences insuffisantes)"
     )
     return {"assigned": published, "message": msg}
+
+
+def republish_assigned_tasks(limit: int = 50) -> Dict[str, Any]:
+    """
+    Renvoie au volontaire les tâches déjà ASSIGNED mais jamais démarrées (0%).
+    Utile quand le volontaire était hors ligne au moment de la première assignation.
+    """
+    volunteers_data = get_available_volunteers()
+    if not volunteers_data:
+        return {"republished": 0, "message": "Aucun volontaire en ligne"}
+
+    online_ids = {
+        str(v.get("volunteer_id"))
+        for v in volunteers_data
+        if v.get("volunteer_id")
+    }
+
+    by_volunteer: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    republished = 0
+
+    for assignment in TaskAssignment.objects(status="ASSIGNED").order_by("assigned_at"):
+        if republished >= limit:
+            break
+        task = assignment.task
+        if not task or float(task.progress or 0) > 0:
+            continue
+        if str(task.status or "").upper() not in ("ASSIGNED", "PENDING", "CREATED"):
+            continue
+        vol = assignment.volunteer
+        if not vol:
+            continue
+        vid = str(vol.id)
+        if vid not in online_ids or not volunteer_is_assignable(vol):
+            continue
+        if any(e.get("task_id") == str(task.id) for e in by_volunteer[vid]):
+            continue
+        by_volunteer[vid].append(_build_assignment_payload(task, vid))
+        republished += 1
+
+    published = 0
+    for volunteer_id, task_list in by_volunteer.items():
+        if not task_list:
+            continue
+        wf_id = task_list[0].get("workflow_id") or ""
+        _publish_assignment_message(
+            {
+                "workflow_id": wf_id,
+                "assignments": {volunteer_id: task_list},
+            }
+        )
+        published += len(task_list)
+        logger.info(
+            "Republication coordinateur: %s tâche(s) → volontaire %s",
+            len(task_list),
+            volunteer_id,
+        )
+
+    msg = (
+        f"{published} tâche(s) republiée(s) vers volontaires en ligne"
+        if published
+        else "Aucune tâche ASSIGNED à republier"
+    )
+    return {"republished": published, "message": msg}
+
+
+def run_coordinator_assignment_cycle(limit: int = 50) -> Dict[str, Any]:
+    """Assigne la file d'attente puis republie les ASSIGNED non démarrées."""
+    pending = assign_pending_tasks(limit=limit)
+    republish = republish_assigned_tasks(limit=limit)
+    return {
+        "assigned": pending.get("assigned", 0),
+        "republished": republish.get("republished", 0),
+        "message": f"{pending.get('message', '')} | {republish.get('message', '')}",
+    }

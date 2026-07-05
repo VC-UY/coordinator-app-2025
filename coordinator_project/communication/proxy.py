@@ -506,6 +506,7 @@ class AsyncRedisProxy:
             'coord/heartbeat/#': True,
             'coord/emergency': True,
             'task/assignment': True,
+            'task/cancel': True,
             'task/accept': True,
             'auth/volunteer_register': True,
             'auth/volunteer_register_response': True,
@@ -538,7 +539,10 @@ class AsyncRedisProxy:
         self.volunteer_channels = {
             'volunteer/available': True,
             'volunteer/resources': True,
+            'volunteer/heartbeat': True,
+            'coord/heartbeat': True,
             'task/result/#': True,
+            'task/result': True,
             'volunteer/data': True,
             'task/status': True, 
             'task/complete': True,

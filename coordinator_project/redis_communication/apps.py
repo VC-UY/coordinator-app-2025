@@ -153,9 +153,9 @@ class RedisCommunicationConfig(AppConfig):
             time.sleep(20)
             while True:
                 try:
-                    from redis_communication.task_assigner import assign_pending_tasks
-                    result = assign_pending_tasks(limit=30)
-                    if result.get('assigned'):
+                    from redis_communication.task_assigner import run_coordinator_assignment_cycle
+                    result = run_coordinator_assignment_cycle(limit=30)
+                    if result.get('assigned') or result.get('republished'):
                         logger.info("Boucle assignation: %s", result.get('message'))
                 except Exception as exc:
                     logger.warning("Boucle assignation: %s", exc)

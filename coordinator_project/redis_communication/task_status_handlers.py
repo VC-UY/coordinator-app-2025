@@ -72,8 +72,8 @@ def _trigger_coordinator_assignment() -> None:
 
     def _run():
         try:
-            from redis_communication.task_assigner import assign_pending_tasks
-            result = assign_pending_tasks()
+            from redis_communication.task_assigner import run_coordinator_assignment_cycle
+            result = run_coordinator_assignment_cycle()
             logger.info("Assignation coordinateur: %s", result.get("message"))
         except Exception as exc:
             logger.warning("Assignation coordinateur échouée: %s", exc)
