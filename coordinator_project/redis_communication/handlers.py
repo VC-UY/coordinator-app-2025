@@ -266,17 +266,25 @@ def heartbeat_handler(channel: str, message: Message):
             if status == "offline":
                 mark_offline(volunteer_id, reason="schedule")
             else:
+                from volunteer.models import Volunteer
+                from volunteer.presence import is_online
+                volunteer = Volunteer.objects(id=volunteer_id).first()
+                was_offline = volunteer and not is_online(volunteer)
                 mark_online(
                     volunteer_id,
                     status=status,
                     preferences=preferences,
                     resources=resources,
                 )
-                if status == "available":
-                    from redis_communication.task_status_handlers import (
-                        _trigger_coordinator_assignment,
+                from redis_communication.task_status_handlers import (
+                    _trigger_coordinator_assignment,
+                )
+                _trigger_coordinator_assignment()
+                if was_offline:
+                    logger.info(
+                        "Volontaire %s de retour en ligne (%s) — republication des tâches",
+                        volunteer_id, status,
                     )
-                    _trigger_coordinator_assignment()
         except Exception as exc:
             logger.warning("Heartbeat volontaire ignore: %s", exc)
     logger.debug(f"Heartbeat reçu de {sender_type}:{sender_id}")
