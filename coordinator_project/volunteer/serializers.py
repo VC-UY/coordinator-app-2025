@@ -1,6 +1,18 @@
 from rest_framework import serializers
 from .models import Volunteer
 
+
+def _machine_display_id(volunteer) -> str:
+    """Identifiant machine basé sur MAC (jamais l'IP publique)."""
+    info = getattr(volunteer, 'machine_info', None) or {}
+    mac = info.get('adresse_mac') if isinstance(info, dict) else None
+    if mac:
+        mac_str = str(mac)
+        if len(mac_str) > 8:
+            return f"mac:{mac_str[:8]}…"
+        return f"mac:{mac_str}"
+    return getattr(volunteer, 'name', '') or str(getattr(volunteer, 'id', ''))
+
 class VolunteerSerializer(serializers.Serializer):
     id = serializers.UUIDField(read_only=True)
     name = serializers.CharField()
@@ -54,7 +66,7 @@ class VolunteerSerializer(serializers.Serializer):
             'gpu_available': getattr(instance, 'gpu_available', False),
             'gpu_model': getattr(instance, 'gpu_model', None),
             'gpu_memory': getattr(instance, 'gpu_memory', None),
-            'ip_address': getattr(instance, 'ip_address', None),
+            'machine_id': _machine_display_id(instance),
             'communication_port': getattr(instance, 'communication_port', None),
             'preferences': getattr(instance, 'preferences', {}) or {},
             'performance': getattr(instance, 'performance', {}) or {},

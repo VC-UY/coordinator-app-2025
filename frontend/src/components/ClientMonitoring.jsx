@@ -232,9 +232,9 @@ function ClientMonitoring() {
       size: 150
     },
     {
-      accessorKey: 'ip_address',
-      header: 'Adresse IP',
-      size: 130
+      accessorKey: 'name',
+      header: 'Machine',
+      size: 160
     },
     {
       accessorKey: 'last_activity',
@@ -502,8 +502,8 @@ function ClientMonitoring() {
                     </Card>
                   </Grid>
                   <Grid item xs={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Adresse IP</Typography>
-                    <Typography variant="body1">{detailsDialog.client.ip_address}</Typography>
+                    <Typography variant="subtitle2" color="text.secondary">Machine</Typography>
+                    <Typography variant="body1">{detailsDialog.client.name || detailsDialog.client.username}</Typography>
                   </Grid>
                   <Grid item xs={6}>
                     <Typography variant="subtitle2" color="text.secondary">Port</Typography>

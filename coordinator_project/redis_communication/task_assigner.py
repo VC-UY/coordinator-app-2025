@@ -59,23 +59,35 @@ def _public_coordinator_host() -> str:
 def _rewrite_input_data_for_volunteer(
     input_data: Dict[str, Any], workflow_id: str
 ) -> Dict[str, Any]:
-    """Réécrit file_server pour que le volontaire distant puisse télécharger les entrées."""
+    """Pointe les volontaires externes vers l'API publique du manager (fiable via HTTPS)."""
     if not input_data:
         return input_data or {}
     data = dict(input_data)
-    fs = data.get("file_server")
-    if not fs or not workflow_id:
+    if not workflow_id:
         return data
-    host = _public_coordinator_host()
-    port = int(getattr(settings, "COORDINATOR_FILE_PORT", 8410))
-    proxy_task_id = f"input_{workflow_id}"
+
+    import os
+    from urllib.parse import urlparse
+
+    manager_url = (
+        os.environ.get("MANAGER_PUBLIC_URL")
+        or getattr(settings, "MANAGER_PUBLIC_URL", None)
+        or "https://manager-vc-uy.npe-techs.com"
+    ).rstrip("/")
+    if "://" not in manager_url:
+        manager_url = f"https://{manager_url}"
+    parsed = urlparse(manager_url)
+    host = parsed.hostname or "manager-vc-uy.npe-techs.com"
+    scheme = parsed.scheme or "https"
+    port = 443 if scheme == "https" else 80
+    base = f"{scheme}://{parsed.netloc}/api/workflow-files/{workflow_id}"
+
     data["file_server"] = {
-        **fs,
         "host": host,
         "port": port,
-        "base_url": f"http://{host}:{port}",
-        "path": f"/files/{proxy_task_id}/",
-        "_routed_by": "coordinator_file_proxy",
+        "base_url": base,
+        "path": "",
+        "mode": "public_api",
     }
     return data
 

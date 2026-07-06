@@ -915,9 +915,9 @@ class AsyncRedisProxy:
             subscriber_count = await asyncio.get_event_loop().run_in_executor(
                 None, redis_connection.publish, channel, new_message_str
             )
-            
-            # Publier aussi via notre gestionnaire pub/sub local
-            # await self.pubsub_manager.publish_to_subscribers(channel, new_message_str)
+
+            # Diffusion immédiate aux abonnés connectés au proxy (volontaires)
+            await self.pubsub_manager.publish_to_subscribers(channel, new_message_str)
             
             # Enregistrer le message dans la base de données
             try:
