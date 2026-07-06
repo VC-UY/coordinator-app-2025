@@ -639,7 +639,7 @@ def volunteer_registration_handler(channel: str, message: Message):
     request_id = message.request_id
     
     # Vérifier que les données sont complètes
-    required_fields = ['name', 'ip_address', 'cpu_cores', 'ram_mb', 'disk_gb', 'username', 'password']
+    required_fields = ['name', 'cpu_cores', 'ram_mb', 'disk_gb', 'username', 'password']
     for field in required_fields:
         if field not in data:
             logger.error(f"Champ requis manquant: {field}")
@@ -659,7 +659,8 @@ def volunteer_registration_handler(channel: str, message: Message):
     name = data.get('name')
     username = data.get('username')
     password = data.get('password')
-    ip_address = data.get('ip_address')
+    ip_address = data.get('ip_address') or '0.0.0.0'  # interne uniquement, non exposé
+    mac_address = data.get('mac_address') or machine_info.get('adresse_mac', '')
     cpu_cores = data.get('cpu_cores')
     ram_mb = data.get('ram_mb')
     disk_gb = data.get('disk_gb')
@@ -697,9 +698,11 @@ def volunteer_registration_handler(channel: str, message: Message):
             existing_machine.username = username
             existing_machine.password = hash_volunteer_password(password)
             existing_machine.name = name
-            existing_machine.ip_address = ip_address
             existing_machine.current_status = 'available'
             existing_machine.last_activity = datetime.utcnow()
+            if mac_address and machine_info:
+                machine_info = dict(machine_info)
+                machine_info['adresse_mac'] = mac_address
             
             # Mettre à jour les informations détaillées de la machine
             if machine_info:
@@ -789,7 +792,7 @@ def volunteer_registration_handler(channel: str, message: Message):
             gpu_available=gpu_available,
             gpu_model=gpu_model,
             gpu_memory=gpu_memory,
-            ip_address=ip_address,
+            ip_address='0.0.0.0',
             communication_port=int(os.environ.get('VOLUNTEER_API_PORT', 8003)),
             current_status='available',
             performance={
@@ -807,11 +810,14 @@ def volunteer_registration_handler(channel: str, message: Message):
         # Stocker les informations détaillées de la machine
         # Limiter la taille des informations pour éviter les problèmes de sérialisation
         if machine_info:
-            # Supprimer les informations trop détaillées qui pourraient causer des problèmes
             if 'partitions_disque' in machine_info:
                 del machine_info['partitions_disque']
+            if mac_address:
+                machine_info = dict(machine_info)
+                machine_info['adresse_mac'] = mac_address
             volunteer.machine_info = machine_info
         
+        volunteer.ip_address = '0.0.0.0'
         volunteer.save()
 
         logger.info(f"Volontaire {name} ({username}) enregistré avec succès (ID: {volunteer.id})")

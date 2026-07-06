@@ -608,7 +608,7 @@ def handle_task_status(channel: str, message: Message):
             return
 
         # Mapper le statut vers le bon handler
-        if status == 'completed':
+        if status == 'completed' or status == 'complete':
             # Gérer les fichiers de sortie si présents
             file_server = data.get('file_server', {})
             if file_server:

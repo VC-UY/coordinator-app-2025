@@ -208,8 +208,8 @@ const ClientValidation = () => {
       )
     },
     {
-      accessorKey: 'ip_address',
-      header: 'IP',
+      accessorKey: 'name',
+      header: 'Machine',
       size: 120
     },
     {
@@ -276,8 +276,8 @@ const ClientValidation = () => {
       size: 150
     },
     {
-      accessorKey: 'ip_address',
-      header: 'IP',
+      accessorKey: 'name',
+      header: 'Machine',
       size: 120
     },
     {
@@ -341,8 +341,8 @@ const ClientValidation = () => {
       size: 200
     },
     {
-      accessorKey: 'ip_address',
-      header: 'IP',
+      accessorKey: 'name',
+      header: 'Machine',
       size: 120
     },
     {
@@ -388,8 +388,8 @@ const ClientValidation = () => {
   // IP Blacklist Table
   const blacklistColumns = useMemo(() => [
     {
-      accessorKey: 'ip_address',
-      header: 'Adresse IP',
+      accessorKey: 'name',
+      header: 'Machine',
       size: 150
     },
     {
@@ -627,8 +627,8 @@ const ClientValidation = () => {
                   <Typography variant="body1">{selectedItem.client_type}</Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography variant="subtitle2" color="text.secondary">Adresse IP</Typography>
-                  <Typography variant="body1">{selectedItem.ip_address}</Typography>
+                  <Typography variant="subtitle2" color="text.secondary">Machine</Typography>
+                  <Typography variant="body1">{selectedItem.name || selectedItem.username}</Typography>
                 </Grid>
                 <Grid item xs={6}>
                   <Typography variant="subtitle2" color="text.secondary">Email valide</Typography>
