@@ -579,7 +579,9 @@ class AsyncRedisProxy:
             '0.0.0.0',
             self.proxy_port,
             limit=10*1024*1024,  # 10MB buffer par connexion (plus grand)
-            backlog=5000  # Queue de connexions plus grande
+            backlog=5000,  # Queue de connexions plus grande
+            reuse_address=True,
+            start_serving=True,
         )
         
         self.running = True
@@ -1579,15 +1581,24 @@ class RedisProxy(AsyncRedisProxy):
         self._loop = None
     
     def start(self):
-        """Démarre le proxy (interface synchrone)"""
-        try:
-            self._loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self._loop)
-            self._loop.run_until_complete(super().start())
-        except KeyboardInterrupt:
-            logger.info("Arrêt du proxy...")
-        finally:
-            self.stop()
+        """Démarre le proxy (interface synchrone) avec redémarrage automatique."""
+        import time
+        while True:
+            try:
+                self._loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(self._loop)
+                self._loop.run_until_complete(super().start())
+            except KeyboardInterrupt:
+                logger.info("Arrêt du proxy...")
+                break
+            except Exception as exc:
+                logger.error("Proxy Redis interrompu: %s — redémarrage dans 2s", exc)
+                time.sleep(2)
+            finally:
+                try:
+                    self.stop()
+                except Exception:
+                    pass
     
     def stop(self):
         """Arrête le proxy (interface synchrone)"""

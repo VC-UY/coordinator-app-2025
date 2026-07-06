@@ -663,6 +663,9 @@ def volunteer_registration_handler(channel: str, message: Message):
     # Enregistrer la requête en attente
     save_pending_request(request_id, data)
     
+    # Extraire les informations de la machine avant d'y accéder
+    machine_info = data.get('machine_info', {}) or {}
+
     # Récupérer les informations de base
     name = data.get('name')
     username = data.get('username')
@@ -672,9 +675,6 @@ def volunteer_registration_handler(channel: str, message: Message):
     cpu_cores = data.get('cpu_cores')
     ram_mb = data.get('ram_mb')
     disk_gb = data.get('disk_gb')
-    
-    # Extraire les informations de la machine si présentes
-    machine_info = data.get('machine_info', {})
     
     # Déterminer le système d'exploitation
     os_info = "Unknown"
