@@ -10,6 +10,7 @@ import threading
 import logging
 import json
 import traceback
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import jwt
 import redis
@@ -272,17 +273,10 @@ class AsyncPubSubManager:
             await asyncio.gather(*self.listen_tasks.values(), return_exceptions=True)
     
     async def subscribe(self, client_id: str, writer, channels: List[str]):
-        """Abonne un client à des canaux"""
+        """Abonne un client à des canaux (relai local ; écoute Redis groupée)."""
         self.client_writers[client_id] = writer
-        
         for channel in channels:
             self.subscribers[channel].add(client_id)
-            
-            # Créer une tâche d'écoute pour ce canal si nécessaire
-            if channel not in self.listen_tasks:
-                self.listen_tasks[channel] = asyncio.create_task(
-                    self._listen_channel(channel)
-                )
     
     async def unsubscribe(self, client_id: str, channels: Optional[List[str]] = None):
         """Désabonne un client"""
@@ -312,6 +306,57 @@ class AsyncPubSubManager:
         """Publie un message aux abonnés locaux"""
         await self.message_queue.put((channel, message))
     
+    async def _listen_channels_batch(self, channels: List[str]):
+        """Écoute plusieurs canaux Redis via une seule connexion pub/sub."""
+        if not channels:
+            return
+        pubsub = None
+        redis_client = None
+        try:
+            redis_client = redis.Redis(
+                host=self.redis_host,
+                port=self.redis_port,
+                decode_responses=True,
+                socket_keepalive=True,
+                socket_connect_timeout=5,
+                socket_timeout=5,
+            )
+            pubsub = redis_client.pubsub(ignore_subscribe_messages=True)
+            await asyncio.get_event_loop().run_in_executor(
+                None, pubsub.subscribe, *channels
+            )
+            logger.info("Écoute Redis groupée sur %d canaux", len(channels))
+
+            while True:
+                try:
+                    message = await asyncio.get_event_loop().run_in_executor(
+                        None, pubsub.get_message, 1.0
+                    )
+                    if message and message.get("type") == "message":
+                        await self.message_queue.put(
+                            (message["channel"], message["data"])
+                        )
+                except asyncio.CancelledError:
+                    break
+                except Exception as exc:
+                    logger.error("Erreur écoute Redis groupée: %s", exc)
+                    await asyncio.sleep(1)
+        except asyncio.CancelledError:
+            logger.debug("Arrêt écoute Redis groupée")
+        except Exception as exc:
+            logger.error("Échec écoute Redis groupée: %s", exc)
+        finally:
+            try:
+                if pubsub:
+                    await asyncio.get_event_loop().run_in_executor(None, pubsub.close)
+            except Exception:
+                pass
+            try:
+                if redis_client:
+                    redis_client.close()
+            except Exception:
+                pass
+
     async def _listen_channel(self, channel: str):
         """Écoute un canal Redis - Version corrigée sans aioredis"""
         try:
@@ -560,67 +605,59 @@ class AsyncRedisProxy:
         ]
     
     async def start(self):
-        """Démarre le proxy asynchrone"""
-        # Initialiser le gestionnaire pub/sub avec les bons paramètres
+        """Démarre le proxy asynchrone — le port 6380 répond avant l'init lourde."""
+        loop = asyncio.get_running_loop()
+        loop.set_default_executor(ThreadPoolExecutor(max_workers=64, thread_name_prefix="redis-proxy"))
+
         self.pubsub_manager = AsyncPubSubManager(self.redis_host, self.redis_port)
         await self.pubsub_manager.start()
-        
-        # Initialiser et démarrer le proxy de fichiers
-        self.file_proxy = get_file_proxy_instance(host='0.0.0.0', port=8410)
-        await self.file_proxy.start()
-        logger.info("✅ Proxy de fichiers initialisé sur le port 8410")
-        
-        # CORRECTION: Écouter automatiquement tous les canaux ouverts sur Redis
-        await self._setup_open_channels_listeners()
-        
-        # Démarrer le serveur avec optimisations pour haute charge
+
         server = await asyncio.start_server(
             self.handle_client,
             '0.0.0.0',
             self.proxy_port,
-            limit=10*1024*1024,  # 10MB buffer par connexion (plus grand)
-            backlog=5000,  # Queue de connexions plus grande
+            limit=10 * 1024 * 1024,
+            backlog=5000,
             reuse_address=True,
-            start_serving=True,
         )
-        
+
         self.running = True
-        
-        # Tâches de maintenance
+        asyncio.create_task(self._background_init())
         asyncio.create_task(self.monitor_performance())
         asyncio.create_task(self.cleanup_inactive_clients())
-        
-        logger.info(f"Proxy Redis asynchrone démarré sur le port {self.proxy_port}")
-        logger.info(f"Optimisé pour 100K+ connexions simultanées")
-        
+
+        logger.info("Proxy Redis asynchrone démarré sur le port %s", self.proxy_port)
+
         async with server:
             await server.serve_forever()
+
+    async def _background_init(self):
+        """Initialisation non bloquante (fichiers + écoute canaux)."""
+        try:
+            self.file_proxy = get_file_proxy_instance(host='0.0.0.0', port=8410)
+            await self.file_proxy.start()
+            logger.info("Proxy de fichiers initialisé sur le port 8410")
+            await self._setup_open_channels_listeners()
+        except Exception as exc:
+            logger.error("Init arrière-plan proxy: %s", exc)
     
     async def _setup_open_channels_listeners(self):
-        """Configure l'écoute automatique des canaux ouverts sur Redis"""
-        logger.info("Configuration de l'écoute automatique des canaux ouverts...")
-        
-        # Créer des listeners automatiques pour tous les canaux ouverts
-        open_channels_list = list(self.open_channels.keys())
-        
-        # Ajouter le canal task/terminate pour nettoyer les tâches
-        if 'task/terminate' not in open_channels_list:
-            open_channels_list.append('task/terminate')
-        
-        for channel in open_channels_list:
-            # Ignorer les patterns (avec #)
-            if '#' not in channel:
-                # Créer une tâche d'écoute dédiée pour ce canal ouvert
-                if channel not in self.pubsub_manager.listen_tasks:
-                    self.pubsub_manager.listen_tasks[channel] = asyncio.create_task(
-                        self.pubsub_manager._listen_channel(channel)
-                    )
-                    logger.info(f"Écoute automatique configurée pour canal ouvert: {channel}")
-        
-        # S'abonner au canal task/terminate pour nettoyer les tâches
+        """Une seule connexion Redis pub/sub pour tous les canaux VC-UY."""
+        logger.info("Configuration de l'écoute groupée des canaux...")
+
+        channels = set(self.open_channels.keys())
+        channels.update(self.volunteer_channels.keys())
+        channels.update(self.manager_channels.keys())
+        channels.add('task/terminate')
+        channel_list = sorted(c for c in channels if '#' not in c)
+
+        if 'all_channels' not in self.pubsub_manager.listen_tasks:
+            self.pubsub_manager.listen_tasks['all_channels'] = asyncio.create_task(
+                self.pubsub_manager._listen_channels_batch(channel_list)
+            )
+
         asyncio.create_task(self._listen_task_terminate())
-        
-        logger.info(f"Écoute automatique configurée pour {len([c for c in open_channels_list if '#' not in c])} canaux ouverts")
+        logger.info("Écoute groupée configurée pour %d canaux", len(channel_list))
     
     async def _listen_task_terminate(self):
         """Écoute le canal task/terminate pour nettoyer les tâches terminées"""
@@ -1588,15 +1625,18 @@ class RedisProxy(AsyncRedisProxy):
                 self._loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(self._loop)
                 self._loop.run_until_complete(super().start())
+                break
             except KeyboardInterrupt:
                 logger.info("Arrêt du proxy...")
                 break
             except Exception as exc:
-                logger.error("Proxy Redis interrompu: %s — redémarrage dans 2s", exc)
-                time.sleep(2)
+                logger.error("Proxy Redis interrompu: %s — redémarrage dans 3s", exc)
+                time.sleep(3)
             finally:
                 try:
-                    self.stop()
+                    if self._loop and not self._loop.is_closed():
+                        self._loop.run_until_complete(super().stop())
+                        self._loop.close()
                 except Exception:
                     pass
     
