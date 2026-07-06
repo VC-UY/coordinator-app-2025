@@ -14,6 +14,9 @@ from manager.models import Task, TaskAssignment
 
 logger = logging.getLogger(__name__)
 
+_TERMINAL_TASK_STATUSES = frozenset({'COMPLETED', 'FAILED', 'CANCELLED', 'TIMEOUT'})
+_TERMINAL_ASSIGNMENT_STATUSES = frozenset({'COMPLETED', 'FAILED', 'TIMEOUT', 'CANCELLED'})
+
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
@@ -41,7 +44,11 @@ def _apply_task_payload(task, data: Dict[str, Any]) -> None:
     task.command = data.get('command', task.command or '')
     task.description = data.get('description', task.description or '')
     task.required_resources = data.get('required_resources', task.required_resources or {})
-    task.progress = float(data.get('progress') or task.progress or 0)
+    if task.status not in _TERMINAL_TASK_STATUSES:
+        incoming = _parse_progress(data.get('progress'), task.progress or 0)
+        task.progress = max(float(task.progress or 0), incoming)
+    elif str(task.status).upper() == 'COMPLETED':
+        task.progress = 100.0
     if data.get('parameters') is not None:
         task.parameters = data.get('parameters') or []
     if data.get('dependencies') is not None:
@@ -183,6 +190,13 @@ def _parse_progress(value, default=0.0) -> float:
         return float(default or 0)
 
 
+def _progress_for_status(status: str, progress: float) -> float:
+    """COMPLETED impose toujours 100 % — évite les régressions après complétion."""
+    if str(status or '').upper() == 'COMPLETED':
+        return 100.0
+    return _parse_progress(progress, 0)
+
+
 def _get_task(task_id):
     return Task.objects.filter(id=task_id).first()
 
@@ -214,22 +228,24 @@ def handle_task_started(channel: str, message: Message):
             logger.error(f"Tâche {task_id} introuvable pour démarrage")
             return
 
+        if task.status in _TERMINAL_TASK_STATUSES:
+            logger.debug("Démarrage ignoré pour tâche terminale %s", task_id)
+            return
+
         old_status = task.status
         task.status = 'RUNNING'
         if not task.start_time:
             task.start_time = datetime.now(timezone.utc)
-        if progress > task.progress:
-            task.progress = progress
+        task.progress = max(float(task.progress or 0), progress)
         task.save()
 
         assignment = _get_assignment(task_id, volunteer_id)
-        if assignment and assignment.status not in ('COMPLETED', 'FAILED', 'TIMEOUT', 'CANCELLED'):
+        if assignment and assignment.status not in _TERMINAL_ASSIGNMENT_STATUSES:
             if assignment.status in ('ASSIGNED',):
                 assignment.status = 'STARTED'
             if not assignment.started_at:
                 assignment.started_at = datetime.now(timezone.utc)
-            if progress > (assignment.progress or 0):
-                assignment.progress = progress
+            assignment.progress = max(float(assignment.progress or 0), progress)
             assignment.save()
         elif volunteer_id:
             try:
@@ -277,20 +293,21 @@ def handle_task_progress(channel: str, message: Message):
             logger.error(f"Tâche {task_id} introuvable pour progression")
             return
 
+        if task.status in _TERMINAL_TASK_STATUSES:
+            logger.debug("Progression ignorée pour tâche terminale %s (statut %s)", task_id, task.status)
+            return
+
         old_status = task.status
-        task.progress = progress
+        task.progress = max(float(task.progress or 0), progress)
         if progress > 0 and task.status in ('PENDING', 'ASSIGNED', 'CREATED'):
             task.status = 'RUNNING'
             if not task.start_time:
                 task.start_time = datetime.now(timezone.utc)
-        if progress >= 100 and task.status not in ('FAILED', 'CANCELLED'):
-            # Ne force pas COMPLETED ici (réservé à task/completed / status completed)
-            pass
         task.save()
 
         assignment = _get_assignment(task_id, volunteer_id)
-        if assignment and assignment.status not in ('COMPLETED', 'FAILED', 'TIMEOUT', 'CANCELLED'):
-            assignment.progress = progress
+        if assignment and assignment.status not in _TERMINAL_ASSIGNMENT_STATUSES:
+            assignment.progress = max(float(assignment.progress or 0), progress)
             if progress > 0 and assignment.status == 'ASSIGNED':
                 assignment.status = 'STARTED'
                 if not assignment.started_at:
@@ -748,8 +765,10 @@ def handle_task_status_sync(channel: str, message: Message):
             return
 
         task.status = coord_status
-        if data.get('progress') is not None:
-            task.progress = float(data.get('progress') or 0)
+        if coord_status == 'COMPLETED':
+            task.progress = 100.0
+        elif data.get('progress') is not None and task.status not in _TERMINAL_TASK_STATUSES:
+            task.progress = max(float(task.progress or 0), float(data.get('progress') or 0))
         if data.get('name'):
             task.name = data['name']
 

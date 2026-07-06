@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
-ONLINE_TTL_SECONDS = 180
+ONLINE_TTL_SECONDS = 300
 
 
 def mark_online(
