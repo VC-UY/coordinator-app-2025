@@ -20,6 +20,7 @@ from redis_communication.client import RedisClient
 from redis_communication.utils import get_available_volunteers, get_coordinator_token
 from redis_communication.volunteer_matching import (
     ACTIVE_ASSIGNMENT_STATUSES,
+    volunteer_active_task_count,
     task_estimated_seconds,
     volunteer_can_run_task,
     volunteer_is_assignable,
@@ -227,11 +228,9 @@ def assign_pending_tasks(limit: int = 50) -> Dict[str, Any]:
             logger.debug("Volontaire %s ignoré (busy/hors plage)", vid)
             continue
         # Stratégie "1 tâche à la fois" : ne pas empiler plusieurs tâches actives.
-        active_links = TaskAssignment.objects.filter(
-            volunteer=vol, status__in=ACTIVE_ASSIGNMENT_STATUSES
-        ).count()
-        if active_links > 0:
-            logger.debug("Volontaire %s ignoré (déjà %s tâche(s) active(s))", vid, active_links)
+        active_tasks = volunteer_active_task_count(vol)
+        if active_tasks > 0:
+            logger.debug("Volontaire %s ignoré (déjà %s tâche(s) active(s))", vid, active_tasks)
             continue
         volunteer_objs.append((vid, vol))
         remaining[vid] = volunteer_remaining_capacity_seconds(vol)
