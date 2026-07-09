@@ -197,6 +197,8 @@ def _build_assignment_payload(task: Task, volunteer_id: str) -> Dict[str, Any]:
         "required_resources": task.required_resources or {},
         "attempts": task.attempts or (getattr(wf, "attempts", 3) if wf else 3),
         "workflow_id": str(wf.id) if wf else "",
+        "workflow_name": wf.name if wf else "",
+        "workflow_description": (wf.description or "") if wf else "",
         "workflow_type": getattr(wf, "workflow_type", "") if wf else "",
         "parameters": task.parameters or [],
         "estimated_execution_time": task_estimated_seconds(task),
@@ -308,9 +310,19 @@ def assign_pending_tasks(limit: int = 50) -> Dict[str, Any]:
         if not task_list:
             continue
         wf_id = task_list[0].get("workflow_id") or ""
+        wf = None
+        if wf_id:
+            from manager.models import Workflow as CoordWorkflow
+            try:
+                wf = CoordWorkflow.objects.get(id=wf_id)
+            except Exception:
+                wf = None
         _publish_assignment_message(
             {
                 "workflow_id": wf_id,
+                "workflow_name": (wf.name if wf else task_list[0].get("workflow_name")) or "",
+                "workflow_description": (wf.description if wf else task_list[0].get("workflow_description")) or "",
+                "workflow_type": (getattr(wf, "workflow_type", "") if wf else task_list[0].get("workflow_type")) or "",
                 "assignments": {volunteer_id: task_list},
             }
         )
@@ -371,9 +383,19 @@ def republish_assigned_tasks(limit: int = 50) -> Dict[str, Any]:
         if not task_list:
             continue
         wf_id = task_list[0].get("workflow_id") or ""
+        wf = None
+        if wf_id:
+            from manager.models import Workflow as CoordWorkflow
+            try:
+                wf = CoordWorkflow.objects.get(id=wf_id)
+            except Exception:
+                wf = None
         _publish_assignment_message(
             {
                 "workflow_id": wf_id,
+                "workflow_name": (wf.name if wf else task_list[0].get("workflow_name")) or "",
+                "workflow_description": (wf.description if wf else task_list[0].get("workflow_description")) or "",
+                "workflow_type": (getattr(wf, "workflow_type", "") if wf else task_list[0].get("workflow_type")) or "",
                 "assignments": {volunteer_id: task_list},
             }
         )
