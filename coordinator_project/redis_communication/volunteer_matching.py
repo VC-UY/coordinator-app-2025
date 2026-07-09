@@ -104,6 +104,27 @@ def volunteer_used_capacity_seconds(volunteer) -> float:
     return total
 
 
+def volunteer_active_task_count(volunteer) -> int:
+    """
+    Nombre de tâches réellement actives pour ce volontaire.
+    Ignore les doublons d'assignation et les tâches terminales.
+    """
+    from manager.models import TaskAssignment
+
+    seen_task_ids = set()
+    for link in TaskAssignment.objects.filter(
+        volunteer=volunteer,
+        status__in=ACTIVE_ASSIGNMENT_STATUSES,
+    ):
+        task = link.task
+        if not task:
+            continue
+        if task.status in ("COMPLETED", "FAILED", "CANCELLED"):
+            continue
+        seen_task_ids.add(str(task.id))
+    return len(seen_task_ids)
+
+
 def volunteer_remaining_capacity_seconds(volunteer) -> Optional[float]:
     max_cap = volunteer_max_capacity_seconds(volunteer)
     if max_cap is None:
