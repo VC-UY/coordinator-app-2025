@@ -4,6 +4,7 @@ __pycache__
 .coordinator
 results
 .env
+deploy/.env.production
 *.sqlite3
 node_modules/
 

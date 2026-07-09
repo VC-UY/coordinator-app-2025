@@ -12,6 +12,24 @@ Le **Coordinator App** est le **cerveau central** du système de calcul distribu
 
 ---
 
+## Déploiement recommandé (repo autonome)
+
+Pour éviter les chemins cassés entre plusieurs dépôts, utilisez désormais le bundle:
+
+- `deploy/docker-compose.coordinator.yml`
+- `deploy/env.production.example`
+- `deploy/README.md`
+
+Lancement rapide:
+
+```bash
+cd deploy
+cp env.production.example .env.production
+docker compose -f docker-compose.coordinator.yml --env-file .env.production up -d --build
+```
+
+---
+
 ##  OBJECTIFS
 
 - **Objectif principal** : Servir de coordinateur central pour tout le réseau de calcul distribué
