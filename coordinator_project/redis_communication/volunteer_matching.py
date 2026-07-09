@@ -86,6 +86,7 @@ def volunteer_used_capacity_seconds(volunteer) -> float:
     from manager.models import TaskAssignment, Task
 
     total = 0.0
+    seen_task_ids = set()
     for link in TaskAssignment.objects.filter(
         volunteer=volunteer,
         status__in=ACTIVE_ASSIGNMENT_STATUSES,
@@ -95,6 +96,10 @@ def volunteer_used_capacity_seconds(volunteer) -> float:
             continue
         if task.status in ("COMPLETED", "FAILED", "CANCELLED"):
             continue
+        task_id = str(task.id)
+        if task_id in seen_task_ids:
+            continue
+        seen_task_ids.add(task_id)
         total += float(getattr(task, "estimated_execution_time", 0) or 0)
     return total
 

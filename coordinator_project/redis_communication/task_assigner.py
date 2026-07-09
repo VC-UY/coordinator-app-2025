@@ -19,6 +19,7 @@ from manager.models import Task, TaskAssignment, Workflow
 from redis_communication.client import RedisClient
 from redis_communication.utils import get_available_volunteers, get_coordinator_token
 from redis_communication.volunteer_matching import (
+    ACTIVE_ASSIGNMENT_STATUSES,
     task_estimated_seconds,
     volunteer_can_run_task,
     volunteer_is_assignable,
@@ -263,7 +264,9 @@ def assign_pending_tasks(limit: int = 50) -> Dict[str, Any]:
         volunteer_id, volunteer = eligible[0]
         est = task_estimated_seconds(task)
 
-        TaskAssignment.objects(task=task, status="ASSIGNED").update(status="CANCELLED")
+        TaskAssignment.objects(
+            task=task, status__in=ACTIVE_ASSIGNMENT_STATUSES
+        ).update(status="CANCELLED")
         TaskAssignment(
             task=task,
             volunteer=volunteer,
