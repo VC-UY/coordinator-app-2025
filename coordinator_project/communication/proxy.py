@@ -10,6 +10,7 @@ import threading
 import logging
 import json
 import traceback
+import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import jwt
@@ -19,9 +20,13 @@ from typing import Dict, Set, List, Optional
 from collections import defaultdict
 
 # Configuration du logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+_log_level = os.environ.get("PROXY_LOG_LEVEL", "INFO").upper()
+logging.basicConfig(
+    level=getattr(logging, _log_level, logging.INFO),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger('RedisProxy')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(getattr(logging, _log_level, logging.INFO))
 
 # Import du proxy de fichiers
 from .file_proxy import get_file_proxy_instance
@@ -527,6 +532,8 @@ class AsyncRedisProxy:
         
         # Proxy de fichiers
         self.file_proxy = None
+        # Logging Mongo optionnel: désactivé par défaut pour éviter les blocages I/O.
+        self.enable_db_logging = os.environ.get("PROXY_DB_LOGGING", "0").lower() in ("1", "true", "yes")
         
         # Stockage des clients optimisé
         self.clients = {}  # client_id -> ClientData
@@ -559,6 +566,7 @@ class AsyncRedisProxy:
             'auth/volunteer_login_response': True,
             'auth/token_refresh': True,
             'auth/token_refresh_response': True,
+            'coordinator/assign_request': True,
             # Canaux de test pour les tests d'intégrité et de performance
             'test/channel': True,
             'test/integrity/small': True,
@@ -593,6 +601,7 @@ class AsyncRedisProxy:
             'task/complete': True,
             'task/progress': True,
             'volunteer_state': True,  # Canal pour l'envoi de l'état/métriques du volontaire
+            'coordinator/assign_request': True,
         }
         
         # Transformateurs de messages
@@ -958,65 +967,22 @@ class AsyncRedisProxy:
             # Diffusion immédiate aux abonnés connectés au proxy (volontaires)
             await self.pubsub_manager.publish_to_subscribers(channel, new_message_str)
             
-            # Enregistrer le message dans la base de données
-            try:
-                # Importer ici pour éviter les imports circulaires
-                from message_logging.services import log_message
-                
-                # Déterminer le type d'expéditeur et de destinataire
-                sender_type = role if role else 'unknown'
-                sender_id = user_id if user_id else client_id
-                
-                # Déterminer le type de destinataire en fonction du canal
-                receiver_type = None
-                receiver_id = None
-                
-                if channel.startswith('volunteer/'):
-                    receiver_type = 'volunteer'
-                elif channel.startswith('manager/'):
-                    receiver_type = 'manager'
-                elif channel.startswith('coordinator/'):
-                    receiver_type = 'coordinator'
-                elif channel == 'task/assignment':
-                    receiver_type = 'volunteer'
-                    if isinstance(message, dict) and 'volunteer_id' in message:
-                        receiver_id = message['volunteer_id']
-                elif channel == 'task/status':
-                    receiver_type = 'manager'
-                    if isinstance(message, dict) and 'manager_id' in message:
-                        receiver_id = message['manager_id']
-                elif channel == 'task/reassignment/response':
-                    receiver_type = 'manager'
-                    if isinstance(message, dict) and 'manager_id' in message:
-                        receiver_id = message['manager_id']
-                else:
-                    receiver_type = 'Everybody'
-                
-                # Récupérer l'ID de requête et le type de message
-                request_id = message.get('request_id', '') if isinstance(message, dict) else ''
-                message_type = message.get('message_type', 'request') if isinstance(message, dict) else 'request'
-                
-                # Enregistrer le message
-                log_message(
-                    sender_type=sender_type,
-                    sender_id=sender_id,
-                    channel=channel,
-                    request_id=request_id,
-                    message_type=message_type,
-                    content=message,
-                    receiver_type=receiver_type,
-                    receiver_id=receiver_id
-                )
-                
-                logger.info(f"Message enregistré dans la base de données: {sender_type}:{sender_id} -> {channel}")
-            except Exception as e:
-                logger.error(f"Erreur lors de l'enregistrement du message: {e}")
-                logger.error(traceback.format_exc())
-            
-            # Réponse du nombre d'abonnés
+            # Réponse immédiate au client (avant logging DB lent)
             response = f":{subscriber_count}\r\n"
             writer.write(response.encode())
             await writer.drain()
+
+            # Logging DB best-effort strictement optionnel (jamais bloquant pour Redis)
+            if self.enable_db_logging:
+                asyncio.create_task(
+                    asyncio.to_thread(
+                        self._safe_log_message,
+                        role if role else 'unknown',
+                        user_id if user_id else client_id,
+                        channel,
+                        message,
+                    )
+                )
             
         except json.JSONDecodeError:
             logger.warning(f"Format JSON invalide dans le message: {message_str}")
@@ -1026,6 +992,45 @@ class AsyncRedisProxy:
         except Exception as e:
             logger.error(f"Erreur lors du traitement de PUBLISH: {e}")
             traceback.print_exc()
+
+    def _safe_log_message(self, sender_type, sender_id, channel, message):
+        """Logging DB best-effort: ignorer tout échec pour préserver la disponibilité."""
+        try:
+            from message_logging.services import log_message
+
+            receiver_type = None
+            receiver_id = None
+            if channel.startswith('volunteer/'):
+                receiver_type = 'volunteer'
+            elif channel.startswith('manager/'):
+                receiver_type = 'manager'
+            elif channel.startswith('coordinator/'):
+                receiver_type = 'coordinator'
+            elif channel == 'task/assignment':
+                receiver_type = 'volunteer'
+                if isinstance(message, dict) and 'volunteer_id' in message:
+                    receiver_id = message['volunteer_id']
+            elif channel in ('task/status', 'task/reassignment/response'):
+                receiver_type = 'manager'
+                if isinstance(message, dict) and 'manager_id' in message:
+                    receiver_id = message['manager_id']
+            else:
+                receiver_type = 'Everybody'
+
+            request_id = message.get('request_id', '') if isinstance(message, dict) else ''
+            message_type = message.get('message_type', 'request') if isinstance(message, dict) else 'request'
+            log_message(
+                sender_type=sender_type,
+                sender_id=sender_id,
+                channel=channel,
+                request_id=request_id,
+                message_type=message_type,
+                content=message,
+                receiver_type=receiver_type,
+                receiver_id=receiver_id,
+            )
+        except Exception as exc:
+            logger.warning("Logging DB ignoré (best-effort): %s", exc)
     
     async def handle_subscribe(self, client_id, client_data, command, writer, redis_connection):
         """Gère la commande SUBSCRIBE - Version corrigée"""

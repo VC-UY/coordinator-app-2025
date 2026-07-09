@@ -382,6 +382,11 @@ def handle_task_completed(channel: str, message: Message):
             if assignment.started_at:
                 assignment.completion_time = (now - assignment.started_at).total_seconds()
             assignment.save()
+            # Annuler les doublons actifs sur la même tâche
+            TaskAssignment.objects(
+                task=task,
+                status__in=('ASSIGNED', 'STARTED', 'RESUMED'),
+            ).filter(id__ne=assignment.id).update(status='CANCELLED')
         elif volunteer_id:
             try:
                 volunteer = Volunteer.objects.get(id=volunteer_id)
