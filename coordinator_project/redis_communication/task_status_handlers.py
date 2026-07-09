@@ -10,7 +10,7 @@ from typing import Dict, Any
 from volunteer.models import Volunteer
 from redis_communication.message import Message
 from redis_communication.volunteer_performance_handlers import update_volunteer_score
-from manager.models import Task, TaskAssignment
+from manager.models import Task, TaskAssignment, Workflow
 
 logger = logging.getLogger(__name__)
 
@@ -207,6 +207,38 @@ def _get_assignment(task_id, volunteer_id):
     if volunteer_id:
         qs = qs.filter(volunteer=volunteer_id)
     return qs.order_by('-assigned_at').first()
+
+
+def _sync_workflow_status(workflow: Workflow | None) -> None:
+    """Recalcule le statut workflow depuis les tâches pour éviter les divergences d'UI."""
+    if not workflow:
+        return
+    tasks = Task.objects(workflow=workflow)
+    total = tasks.count()
+    if total == 0:
+        if workflow.status != 'PENDING':
+            workflow.status = 'PENDING'
+            workflow.save()
+        return
+
+    completed = tasks.filter(status='COMPLETED').count()
+    failed = tasks.filter(status='FAILED').count()
+    active = tasks.filter(status__in=['ASSIGNED', 'RUNNING']).count()
+    pending = tasks.filter(status__in=['PENDING', 'CREATED']).count()
+
+    next_status = workflow.status
+    if completed >= total:
+        next_status = 'COMPLETED'
+    elif active > 0:
+        next_status = 'RUNNING'
+    elif failed > 0 and pending == 0:
+        next_status = 'FAILED'
+    else:
+        next_status = 'PENDING'
+
+    if workflow.status != next_status:
+        workflow.status = next_status
+        workflow.save()
 
 
 def handle_task_started(channel: str, message: Message):
@@ -662,6 +694,10 @@ def handle_task_status(channel: str, message: Message):
         else:
             logger.warning(f"Statut inconnu '{status}' pour la tâche {task_id}")
 
+        task = Task.objects(id=task_id).first()
+        if task:
+            _sync_workflow_status(task.workflow)
+
     except Exception as e:
         logger.error(f"Erreur dans handle_task_status: {e}")
         logger.error(traceback.format_exc())
@@ -829,6 +865,7 @@ def handle_task_status_sync(channel: str, message: Message):
         logger.info("task/status_sync: %s -> %s", task_id, coord_status)
         if coord_status == 'PENDING':
             _trigger_coordinator_assignment()
+        _sync_workflow_status(task.workflow)
     except Exception as e:
         logger.error("Erreur task/status_sync: %s", e)
         logger.error(traceback.format_exc())
