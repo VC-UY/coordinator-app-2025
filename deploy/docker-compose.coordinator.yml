@@ -1,0 +1,114 @@
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--bind", "0.0.0.0", "--protected-mode", "no"]
+    volumes:
+      - coordinator_redis:/data
+    networks: [coordinator]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - coordinator_mongo:/data/db
+    networks: [coordinator]
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # Port public stable pour les volontaires: 6380 -> redis:6379
+  redis-gateway:
+    image: alpine/socat
+    restart: unless-stopped
+    command: ["TCP-LISTEN:6380,fork,reuseaddr", "TCP:redis:6379"]
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "6380:6380"
+    networks: [coordinator]
+
+  coordinator-api:
+    build:
+      context: ..
+      dockerfile: deploy/docker/coordinator-api.Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      MONGODB_HOST: mongodb
+      MONGODB_PORT: 27017
+      MONGODB_NAME: coordinator_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PROXY_HOST: redis
+      REDIS_PROXY_PORT: 6379
+      COORDINATOR_PUBLIC_IP: ${COORDINATOR_PUBLIC_IP:-127.0.0.1}
+      MANAGER_PUBLIC_URL: ${MANAGER_PUBLIC_URL:-http://localhost:8002}
+    depends_on:
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    ports:
+      - "8001:8001"
+    networks: [coordinator]
+
+  # Proxy Python conservé pour les canaux internes supplémentaires (6381)
+  coordinator-proxy:
+    build:
+      context: ..
+      dockerfile: deploy/docker/coordinator-proxy.Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      PROXY_LOG_LEVEL: INFO
+      PROXY_DB_LOGGING: "0"
+      COORDINATOR_PUBLIC_IP: ${COORDINATOR_PUBLIC_IP:-127.0.0.1}
+    depends_on:
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    ports:
+      - "6381:6380"
+      - "8410:8410"
+    networks: [coordinator]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import redis; r=redis.Redis(host='127.0.0.1',port=6380,socket_connect_timeout=2,socket_timeout=2,protocol=2); r.ping()\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  coordinator-frontend:
+    build:
+      context: ..
+      dockerfile: deploy/docker/coordinator-frontend.Dockerfile
+      args:
+        VITE_API_URL: ${COORDINATOR_PUBLIC_URL:-http://localhost:8001}/api
+    restart: unless-stopped
+    depends_on:
+      - coordinator-api
+    ports:
+      - "5173:80"
+    networks: [coordinator]
+
+networks:
+  coordinator:
+    driver: bridge
+
+volumes:
+  coordinator_redis:
+  coordinator_mongo:
