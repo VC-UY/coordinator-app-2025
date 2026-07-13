@@ -33,6 +33,70 @@ logger = logging.getLogger(__name__)
 PENDING_STATUSES = ("PENDING", "CREATED")
 
 
+def _release_surplus_assignments_for_volunteer(volunteer) -> int:
+    """
+    Garde au plus 1 assignation active par volontaire.
+    Les tâches en trop repassent en PENDING pour les autres volontaires.
+    """
+    from manager.models import TaskAssignment
+
+    links = list(
+        TaskAssignment.objects.filter(
+            volunteer=volunteer,
+            status__in=ACTIVE_ASSIGNMENT_STATUSES,
+        ).order_by("-status", "assigned_at")  # STARTED before ASSIGNED roughly; then oldest
+    )
+    # Prefer keeping a STARTED/RESUMED task; otherwise the oldest ASSIGNED.
+    keep = None
+    for link in links:
+        st = str(link.status or "").upper()
+        if st in ("STARTED", "RESUMED"):
+            keep = link
+            break
+    if keep is None and links:
+        keep = min(
+            links,
+            key=lambda a: a.assigned_at or datetime.min.replace(tzinfo=timezone.utc),
+        )
+
+    released = 0
+    for link in links:
+        if keep is not None and str(link.id) == str(keep.id):
+            continue
+        task = link.task
+        link.status = "CANCELLED"
+        link.save()
+        if task and str(task.status or "").upper() in ("ASSIGNED", "PENDING", "CREATED"):
+            task.status = "PENDING"
+            task.assigned_to = None
+            task.progress = 0
+            task.save()
+            released += 1
+            logger.info(
+                "Surplus libéré: tâche %s du volontaire %s → PENDING",
+                task.id,
+                volunteer.id,
+            )
+    return released
+
+
+def _enforce_one_active_assignment_per_volunteer() -> int:
+    """Démêle les piles historiques (N tâches ASSIGNED au même volontaire)."""
+    released = 0
+    seen = set()
+    for link in TaskAssignment.objects.filter(status__in=ACTIVE_ASSIGNMENT_STATUSES):
+        vol = link.volunteer
+        if not vol:
+            continue
+        vid = str(vol.id)
+        if vid in seen:
+            continue
+        seen.add(vid)
+        if volunteer_active_task_count(vol) > 1:
+            released += _release_surplus_assignments_for_volunteer(vol)
+    return released
+
+
 def _public_coordinator_host() -> str:
     """Adresse joignable par les volontaires externes (pas l'IP Docker interne)."""
     import os
@@ -61,14 +125,18 @@ def _public_coordinator_host() -> str:
 def _rewrite_input_data_for_volunteer(
     input_data: Dict[str, Any], workflow_id: str
 ) -> Dict[str, Any]:
-    """Pointe les volontaires externes vers l'API publique du manager (fiable via HTTPS)."""
+    """Pointe les volontaires vers l'API publique du manager (HTTPS).
+
+    Important: conserver l'UUID manager déjà présent dans base_url.
+    Remplacer par l'id Mongo du coordinateur provoque des 404
+    (No Workflow matches the given query).
+    """
     if not input_data:
         return input_data or {}
     data = dict(input_data)
-    if not workflow_id:
-        return data
 
     import os
+    import re
     from urllib.parse import urlparse
 
     manager_url = (
@@ -82,22 +150,55 @@ def _rewrite_input_data_for_volunteer(
     host = parsed.hostname or "manager-vc-uy.npe-techs.com"
     scheme = parsed.scheme or "https"
     port = 443 if scheme == "https" else 80
-    base = f"{scheme}://{parsed.netloc}/api/workflow-files/{workflow_id}"
 
+    existing = dict(data.get("file_server") or {})
+    existing_base = (existing.get("base_url") or "").strip()
+
+    # Extraire l'UUID manager depuis l'URL d'origine si présente
+    manager_wf_id = ""
+    m = re.search(r"/api/workflow-files/([0-9a-fA-F-]{36})", existing_base)
+    if m:
+        manager_wf_id = m.group(1)
+    if not manager_wf_id:
+        manager_wf_id = str(workflow_id or "").strip()
+
+    if not manager_wf_id:
+        return data
+
+    base = f"{scheme}://{parsed.netloc}/api/workflow-files/{manager_wf_id}"
     data["file_server"] = {
         "host": host,
         "port": port,
         "base_url": base,
         "path": "",
         "mode": "public_api",
+        # Conserver l'UUID manager pour les republications
+        "manager_workflow_id": manager_wf_id,
     }
+    if existing.get("result_upload_url"):
+        data["result_upload_url"] = existing["result_upload_url"]
     return data
 
 
 def _volunteer_proxy_redis() -> redis.Redis:
-    """Redis vu par les volontaires externes (proxy 6380)."""
-    host = getattr(settings, "VOLUNTEER_REDIS_HOST", "coordinator-proxy")
-    port = int(getattr(settings, "VOLUNTEER_REDIS_PORT", 6380))
+    """Redis vu par les volontaires externes (même instance que le gateway 6380)."""
+    import os
+
+    # Préférer le Redis interne (socat gateway → redis:6379). Évite NOAUTH du proxy Python.
+    host = (
+        getattr(settings, "VOLUNTEER_REDIS_HOST", None)
+        or os.environ.get("VOLUNTEER_REDIS_HOST")
+        or getattr(settings, "REDIS_HOST", None)
+        or os.environ.get("REDIS_HOST")
+        or "redis"
+    )
+    port = int(
+        getattr(settings, "VOLUNTEER_REDIS_PORT", None)
+        or os.environ.get("VOLUNTEER_REDIS_PORT")
+        or getattr(settings, "REDIS_PORT", None)
+        or os.environ.get("REDIS_PORT")
+        or 6379
+    )
     return redis.Redis(host=host, port=port, db=0, decode_responses=True)
 
 
@@ -184,8 +285,13 @@ def _build_assignment_payload(task: Task, volunteer_id: str) -> Dict[str, Any]:
     wf = task.workflow
     meta = task.metadata or {}
     input_data = task.input_data or meta.get("input_data") or {}
-    wf_id = str(wf.id) if wf else ""
-    input_data = _rewrite_input_data_for_volunteer(input_data, wf_id)
+    coord_wf_id = str(wf.id) if wf else ""
+    input_data = _rewrite_input_data_for_volunteer(input_data, coord_wf_id)
+    # Préférer l'UUID manager (celui des fichiers) pour le payload volontaire
+    manager_wf_id = (
+        (input_data.get("file_server") or {}).get("manager_workflow_id")
+        or coord_wf_id
+    )
     return {
         "task_id": str(task.id),
         "name": task.name,
@@ -196,7 +302,7 @@ def _build_assignment_payload(task: Task, volunteer_id: str) -> Dict[str, Any]:
         "status": "ASSIGNED",
         "required_resources": task.required_resources or {},
         "attempts": task.attempts or (getattr(wf, "attempts", 3) if wf else 3),
-        "workflow_id": str(wf.id) if wf else "",
+        "workflow_id": manager_wf_id,
         "workflow_name": wf.name if wf else "",
         "workflow_description": (wf.description or "") if wf else "",
         "workflow_type": getattr(wf, "workflow_type", "") if wf else "",
@@ -211,7 +317,12 @@ def _build_assignment_payload(task: Task, volunteer_id: str) -> Dict[str, Any]:
 def assign_pending_tasks(limit: int = 50) -> Dict[str, Any]:
     """
     Point d'entrée : assigne depuis la file globale selon capacité volontaires.
+    Une seule tâche active par volontaire (fair-share entre machines).
     """
+    released = _enforce_one_active_assignment_per_volunteer()
+    if released:
+        logger.info("Pré-nettoyage: %s assignation(s) surplus libérée(s)", released)
+
     volunteers_data = get_available_volunteers()
     if not volunteers_data:
         return {"assigned": 0, "message": "Aucun volontaire disponible (hors plage ou offline)"}
@@ -232,15 +343,24 @@ def assign_pending_tasks(limit: int = 50) -> Dict[str, Any]:
         # Stratégie "1 tâche à la fois" : ne pas empiler plusieurs tâches actives.
         active_tasks = volunteer_active_task_count(vol)
         if active_tasks > 0:
-            logger.debug("Volontaire %s ignoré (déjà %s tâche(s) active(s))", vid, active_tasks)
+            logger.info(
+                "Volontaire %s ignoré (déjà %s tâche(s) active(s))",
+                vid,
+                active_tasks,
+            )
             continue
         volunteer_objs.append((vid, vol))
         remaining[vid] = volunteer_remaining_capacity_seconds(vol)
 
     if not volunteer_objs:
+        if volunteers_data:
+            return {
+                "assigned": 0,
+                "message": "Volontaire(s) en ligne mais déjà occupé(s) ou hors critères d'assignation",
+            }
         return {
             "assigned": 0,
-            "message": "Aucun volontaire dans sa plage horaire de disponibilité",
+            "message": "Aucun volontaire disponible (hors plage ou offline)",
         }
 
     queue = _pending_tasks_global()
@@ -358,6 +478,7 @@ def republish_assigned_tasks(limit: int = 50) -> Dict[str, Any]:
 
     by_volunteer: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
     republished = 0
+    already_has_task: set[str] = set()
 
     for assignment in TaskAssignment.objects(status="ASSIGNED").order_by("assigned_at"):
         if republished >= limit:
@@ -373,9 +494,17 @@ def republish_assigned_tasks(limit: int = 50) -> Dict[str, Any]:
         vid = str(vol.id)
         if vid not in online_ids or not volunteer_is_assignable(vol):
             continue
-        if any(e.get("task_id") == str(task.id) for e in by_volunteer[vid]):
+        # Une seule tâche republiée par volontaire (fair-share).
+        if vid in already_has_task or by_volunteer[vid]:
             continue
+        if volunteer_active_task_count(vol) > 1:
+            _release_surplus_assignments_for_volunteer(vol)
+            # Re-check: only republish if this assignment is still the kept one.
+            assignment.reload()
+            if str(assignment.status or "").upper() != "ASSIGNED":
+                continue
         by_volunteer[vid].append(_build_assignment_payload(task, vid))
+        already_has_task.add(vid)
         republished += 1
 
     published = 0
