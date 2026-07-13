@@ -663,12 +663,20 @@ def handle_task_status(channel: str, message: Message):
 
         # Mapper le statut vers le bon handler
         if status == 'completed' or status == 'complete':
-            # Gérer les fichiers de sortie si présents
-            file_server = data.get('file_server', {})
-            if file_server:
-                logger.info(f"Fichiers de sortie disponibles: {file_server}")
-                _handle_task_output_files(task_id, volunteer_id, workflow_id, file_server, data)
+            # Toujours marquer COMPLETED d'abord — le fetch des sorties ne doit jamais bloquer ça.
             handle_task_completed(channel, message)
+            file_server = data.get('file_server', {}) or {}
+            # Si le volontaire a déjà uploadé vers le manager, rien à retélécharger.
+            if file_server and not file_server.get('uploaded'):
+                try:
+                    logger.info(f"Fichiers de sortie disponibles: {file_server}")
+                    _handle_task_output_files(task_id, volunteer_id, workflow_id, file_server, data)
+                except Exception as fetch_exc:
+                    logger.warning(
+                        "Récupération sorties échouée pour %s (tâche déjà COMPLETED): %s",
+                        task_id,
+                        fetch_exc,
+                    )
 
         elif status in ['failed', 'error']:
             handle_task_failed(channel, message)
@@ -708,10 +716,22 @@ def _handle_task_output_files(task_id: str, volunteer_id: str, workflow_id: str,
     Télécharge les fichiers de sortie depuis le serveur de fichiers du volontaire
     et les transfère vers le manager.
     """
-    import requests
+    try:
+        import requests
+    except ImportError:
+        logger.warning(
+            "Module requests absent — skip téléchargement sorties pour tâche %s",
+            task_id,
+        )
+        return
+
     import os
 
     try:
+        if file_server.get('uploaded'):
+            logger.info("Sorties déjà uploadées par le volontaire pour %s — skip fetch LAN", task_id)
+            return
+
         host = file_server.get('host')
         port = file_server.get('port')
         path = file_server.get('path', '/files/')

@@ -177,8 +177,8 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Redis settings for consumers.py
-REDIS_HOST = '127.0.0.1'
-REDIS_PORT = 6379
+REDIS_HOST = os.environ.get('REDIS_HOST', '127.0.0.1')
+REDIS_PORT = int(os.environ.get('REDIS_PORT', '6379'))
 REDIS_DB = 0
 
 # Redis proxy settings
@@ -187,6 +187,11 @@ REDIS_PORT_FOR_PROXY = int(os.environ.get('REDIS_PORT', '6379'))
 REDIS_PROXY_PORT = int(os.environ.get('REDIS_PROXY_PORT', '6380'))
 REDIS_PROXY_DB = 0
 USE_REDIS_PROXY = env_bool('USE_REDIS_PROXY', False)
+
+# Publication des assignations vers le bus vu par les volontaires (gateway 6380 → redis).
+# Ne pas pointer vers coordinator-proxy (AUTH / NOAUTH).
+VOLUNTEER_REDIS_HOST = os.environ.get('VOLUNTEER_REDIS_HOST', REDIS_HOST)
+VOLUNTEER_REDIS_PORT = int(os.environ.get('VOLUNTEER_REDIS_PORT', str(REDIS_PORT)))
 
 # Redis for channel layers (message broker)
 CHANNEL_LAYERS = {
