@@ -94,7 +94,7 @@ def volunteer_used_capacity_seconds(volunteer) -> float:
         task = link.task
         if not task:
             continue
-        if task.status in ("COMPLETED", "FAILED", "CANCELLED"):
+        if _task_is_effectively_done(task):
             continue
         task_id = str(task.id)
         if task_id in seen_task_ids:
@@ -104,10 +104,25 @@ def volunteer_used_capacity_seconds(volunteer) -> float:
     return total
 
 
+def _task_is_effectively_done(task) -> bool:
+    """Terminale OU progress≈100% resté bloqué en ASSIGNED/RUNNING (bug historique)."""
+    if not task:
+        return True
+    st = str(task.status or "").upper()
+    if st in ("COMPLETED", "FAILED", "CANCELLED", "TIMEOUT"):
+        return True
+    try:
+        if float(getattr(task, "progress", 0) or 0) >= 99.5:
+            return True
+    except (TypeError, ValueError):
+        pass
+    return False
+
+
 def volunteer_active_task_count(volunteer) -> int:
     """
     Nombre de tâches réellement actives pour ce volontaire.
-    Ignore les doublons d'assignation et les tâches terminales.
+    Ignore les doublons d'assignation et les tâches terminales / 100%.
     """
     from manager.models import TaskAssignment
 
@@ -119,7 +134,7 @@ def volunteer_active_task_count(volunteer) -> int:
         task = link.task
         if not task:
             continue
-        if task.status in ("COMPLETED", "FAILED", "CANCELLED"):
+        if _task_is_effectively_done(task):
             continue
         seen_task_ids.add(str(task.id))
     return len(seen_task_ids)

@@ -84,9 +84,11 @@ def _cleanup_stale_active_assignments() -> int:
     """
     Annule les assignations actives incohérentes :
     - volontaire manquant
-    - tâche manquante ou déjà terminale (COMPLETED/FAILED/CANCELLED)
+    - tâche manquante / terminale / progress≈100% restée ASSIGNED
     Sans ça, un STARTED fantôme bloque à jamais « 1 tâche par volontaire ».
     """
+    from redis_communication.volunteer_matching import _task_is_effectively_done
+
     released = 0
     for link in list(TaskAssignment.objects.filter(status__in=ACTIVE_ASSIGNMENT_STATUSES)):
         task = link.task
@@ -96,8 +98,36 @@ def _cleanup_stale_active_assignments() -> int:
             reason = "volontaire manquant"
         elif not task:
             reason = "tâche manquante"
-        elif str(task.status or "").upper() in ("COMPLETED", "FAILED", "CANCELLED"):
-            reason = f"tâche déjà {task.status}"
+        elif _task_is_effectively_done(task):
+            st = str(getattr(task, "status", "") or "")
+            prog = getattr(task, "progress", None)
+            reason = f"tâche déjà terminée (status={st}, progress={prog})"
+            # Guérir le statut tâche si progress=100 mais status encore ASSIGNED
+            if str(st).upper() not in ("COMPLETED", "FAILED", "CANCELLED", "TIMEOUT"):
+                try:
+                    task.status = "COMPLETED"
+                    task.progress = 100
+                    if not getattr(task, "end_time", None):
+                        task.end_time = datetime.now(timezone.utc)
+                    task.save()
+                except Exception as exc:
+                    logger.debug("heal task status: %s", exc)
+            try:
+                link.status = "COMPLETED"
+                link.progress = 100
+                link.completed_at = datetime.now(timezone.utc)
+                link.save()
+            except Exception:
+                link.status = "CANCELLED"
+                link.save()
+            released += 1
+            logger.info(
+                "Assignation stale fermée (%s): assignment=%s task=%s",
+                reason,
+                link.id,
+                getattr(task, "id", None),
+            )
+            continue
         if not reason:
             continue
         link.status = "CANCELLED"
@@ -430,15 +460,36 @@ def assign_pending_tasks(limit: int = 50) -> Dict[str, Any]:
             from redis_communication.availability_probe import probe_volunteer_availability
 
             probe = probe_volunteer_availability(volunteer_id, horizon_min=15)
-            if not probe.get("ok") or not probe.get("launch"):
+            # Soft gate: ne bloque en dur que si STRICT + launch=False explicite non dégradé.
+            # Sinon (timeout, bridge dégradé, batterie) on assigne quand même et on
+            # journalise — sinon une sonde fail/ORPHAN bloque toute la file.
+            import os as _os
+
+            strict = str(
+                _os.environ.get("COORDINATOR_AVAILABILITY_STRICT", "0")
+            ).lower() in ("1", "true", "yes", "on")
+            hard_block = (
+                strict
+                and probe.get("ok")
+                and probe.get("launch") is False
+                and not probe.get("degraded")
+            )
+            if hard_block:
                 logger.info(
-                    "Volontaire %s écarté par prédicteur 15min (launch=%s err=%s hybrid=%s)",
+                    "Volontaire %s écarté (STRICT) prédicteur 15min (launch=%s hybrid=%s)",
                     volunteer_id,
                     probe.get("launch"),
-                    probe.get("error"),
                     probe.get("hybrid"),
                 )
                 continue
+            if probe.get("launch") is False or probe.get("degraded"):
+                logger.info(
+                    "Prédicteur soft pour %s (launch=%s degraded=%s src=%s) — assignation quand même",
+                    volunteer_id,
+                    probe.get("launch"),
+                    probe.get("degraded"),
+                    probe.get("source"),
+                )
             chosen = (volunteer_id, volunteer, probe)
             break
 

@@ -4,6 +4,7 @@ Gestionnaires pour les événements de statut et progression des tâches.
 
 import logging
 import traceback
+import uuid
 from datetime import datetime, timezone
 from typing import Dict, Any
 
@@ -376,6 +377,25 @@ def handle_task_progress(channel: str, message: Message):
                     "Progression tâche %s: volontaire %s inconnu (Task.progress=%s)",
                     task_id, volunteer_id, progress,
                 )
+
+        # Si le volontaire envoie 100% sans message completed, cloturer quand meme.
+        if float(progress) >= 99.5 and str(task.status or '').upper() not in _TERMINAL_TASK_STATUSES:
+            logger.info(
+                "Progression 100%% sans completed → auto-complete tâche %s",
+                task_id,
+            )
+            fake = Message(
+                request_id=getattr(message, 'request_id', None) or str(uuid.uuid4()),
+                sender=getattr(message, 'sender', {}) or {'type': 'system', 'id': 'coordinator'},
+                message_type='event',
+                data={
+                    'task_id': task_id,
+                    'volunteer_id': volunteer_id,
+                    'results': data.get('results') or {},
+                },
+            )
+            handle_task_completed(channel, fake)
+            return
 
         logger.info("Progression synchronisée — tâche %s: %s%%", task_id, progress)
 
