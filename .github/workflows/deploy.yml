@@ -45,20 +45,25 @@ jobs:
 
             ${COMPOSE} build ${SERVICES}
 
-            # Mise à jour progressive (sans stop global qui coupe le port 6380)
-            for attempt in 1 2 3 4 5; do
+            mkdir -p /opt/vc-uy/deploy/scripts
+            if [ -f /opt/vc-uy/CD/coordinator-app-2025/deploy-helpers/compose-up-retry.sh ]; then
+              cp /opt/vc-uy/CD/coordinator-app-2025/deploy-helpers/compose-up-retry.sh \
+                /opt/vc-uy/deploy/scripts/compose-up-retry.sh
+            fi
+            chmod +x /opt/vc-uy/deploy/scripts/compose-up-retry.sh
+            # Nettoyage noms hashés + up avec retry
+            for attempt in 1 2 3 4 5 6; do
               echo "=== compose up tentative ${attempt} ==="
-              if ${COMPOSE} up -d --remove-orphans ${SERVICES}; then
+              if COMPOSE_UP_NO_DEPS=0 /opt/vc-uy/deploy/scripts/compose-up-retry.sh \
+                  /opt/vc-uy/deploy/docker-compose.prod.yml \
+                  /opt/vc-uy/deploy/.env.production \
+                  ${SERVICES}; then
                 break
               fi
-              for svc in ${SERVICES}; do
-                ${COMPOSE} rm -sf "${svc}" 2>/dev/null || true
-                cid="$(${COMPOSE} ps -q "${svc}" 2>/dev/null || true)"
-                [[ -n "${cid}" ]] && docker rm -f "${cid}" 2>/dev/null || true
-              done
               docker ps -aq --filter "name=coordinator-proxy" | xargs -r docker rm -f 2>/dev/null || true
-              sleep 10
-              [[ "${attempt}" -eq 5 ]] && exit 1
+              docker ps -a --format '{{.ID}} {{.Names}}' | awk '/_deploy-coordinator/ {print $1}' | xargs -r docker rm -f 2>/dev/null || true
+              sleep 8
+              [[ "${attempt}" -eq 6 ]] && exit 1
             done
 
             echo "=== Attente proxy Redis 6380 ==="

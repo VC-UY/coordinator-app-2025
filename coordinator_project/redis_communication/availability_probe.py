@@ -159,14 +159,38 @@ def probe_volunteer_availability(
             fb["error"] = f"publish_failed:{exc}"
             _store_probe_history(client, fb)
             return fb
-        return {"ok": False, "launch": False, "error": f"publish_failed:{exc}"}
+        return {
+            "ok": False,
+            "launch": None,
+            "degraded": True,
+            "source": "timeout",
+            "error": f"publish_failed:{exc}",
+            "volunteer_id": vid,
+            "prediction_detail": {},
+        }
 
     deadline = time.time() + wait
     while time.time() < deadline:
         try:
             raw = client.redis.get(key)
         except Exception as exc:
-            return {"ok": False, "launch": False, "error": f"redis_get:{exc}"}
+            fb = _fallback_from_site(vid)
+            if fb:
+                fb["error"] = f"redis_get:{exc}"
+                fb["request_id"] = request_id
+                fb["probed_at"] = time.time()
+                _store_probe_history(client, fb)
+                return fb
+            return {
+                "ok": False,
+                "launch": None,
+                "degraded": True,
+                "source": "timeout",
+                "error": f"redis_get:{exc}",
+                "request_id": request_id,
+                "volunteer_id": vid,
+                "prediction_detail": {},
+            }
         if raw:
             try:
                 if isinstance(raw, bytes):
@@ -188,7 +212,15 @@ def probe_volunteer_availability(
                 )
                 return data
             except Exception as exc:
-                return {"ok": False, "launch": False, "error": f"bad_payload:{exc}"}
+                return {
+                    "ok": False,
+                    "launch": None,
+                    "degraded": True,
+                    "source": "timeout",
+                    "error": f"bad_payload:{exc}",
+                    "volunteer_id": vid,
+                    "prediction_detail": {},
+                }
         time.sleep(0.15)
 
     logger.info("Sonde disponibilité timeout pour volontaire %s (%.1fs)", vid[:8], wait)

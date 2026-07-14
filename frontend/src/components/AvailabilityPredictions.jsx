@@ -24,9 +24,20 @@ function num(v, digits = 1) {
 }
 
 function launchLabel(row) {
+  if (row.error === 'timeout' && (row.hybrid == null) && !row.prediction_detail?.hybrid) {
+    return 'INDISPONIBLE';
+  }
   if (row.launch == null && row.launch_assumed) return 'ASSUMÉ (timeout)';
   if (row.launch == null) return '—';
   return row.launch ? 'OUI' : 'NON';
+}
+
+function sourceLabel(row) {
+  const s = row?.source || '';
+  if (s === 'redis_probe') return 'agent Redis (live)';
+  if (s === 'site_telemetry_fallback') return 'fallback télémétrie site (pas Redis live)';
+  if (s === 'timeout') return 'échec total (Redis + site)';
+  return s || '—';
 }
 
 function detailOf(row) {
@@ -156,8 +167,23 @@ export default function AvailabilityPredictions() {
             <Chip label={`hybrid ${pct(d.hybrid ?? focus.hybrid)}`} sx={{ color: '#67e8f9' }} />
             <Chip label={`seuil ${num(d.launch_threshold ?? d.threshold ?? focus.launch_threshold, 2)}`} sx={{ color: '#94a3b8' }} />
             <Chip label={d.label || focus.label || 'stay_soft_15m'} sx={{ color: '#cbd5e1' }} />
-            <Chip label={focus.source || '—'} sx={{ color: '#fbbf24' }} />
+            <Chip label={sourceLabel(focus)} sx={{ color: '#fbbf24' }} />
+            {(d.launch_block_reason || focus.launch_block_reason) && (
+              <Chip label={`bloc: ${d.launch_block_reason || focus.launch_block_reason}`} sx={{ color: '#fda4af' }} />
+            )}
           </Stack>
+          {(focus.source === 'timeout' || focus.error === 'timeout') && focus.hybrid == null && (
+            <Typography sx={{ color: '#fca5a5', mb: 2, fontSize: 14 }}>
+              Pas de prediction modele : Redis n&apos;a pas repondu et le fallback site est indisponible.
+              Les tirets ci-dessous ne sont PAS des scores ARX/GRU a 0 %.
+            </Typography>
+          )}
+          {focus.source === 'site_telemetry_fallback' && (
+            <Typography sx={{ color: '#fbbf24', mb: 2, fontSize: 14 }}>
+              Redis live indisponible — scores issus de la derniere télémétrie syncée sur le site
+              (bridge/agent). Verifier Redis :6380 et l&apos;abonnement du volontaire.
+            </Typography>
+          )}
           <Table size="small">
             <TableBody>
               {[
