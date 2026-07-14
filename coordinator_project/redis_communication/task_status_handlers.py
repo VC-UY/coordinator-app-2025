@@ -202,11 +202,25 @@ def _get_task(task_id):
 
 
 def _get_assignment(task_id, volunteer_id):
-    """Retrouve l'assignation active sans filtre de statut trop strict."""
+    """Retrouve l'assignation active (ASSIGNED/STARTED/RESUMED), sinon la plus récente."""
     qs = TaskAssignment.objects.filter(task=task_id)
     if volunteer_id:
         qs = qs.filter(volunteer=volunteer_id)
+    active = qs.filter(status__in=('ASSIGNED', 'STARTED', 'RESUMED')).order_by('-assigned_at').first()
+    if active:
+        return active
     return qs.order_by('-assigned_at').first()
+
+
+def _close_active_assignments_for_task(task, *, keep_id=None, now=None):
+    """Libère tous les créneaux actifs d'une tâche (évite les STARTED fantômes qui bloquent la file)."""
+    now = now or datetime.now(timezone.utc)
+    for assignment in TaskAssignment.objects(task=task, status__in=('ASSIGNED', 'STARTED', 'RESUMED')):
+        if keep_id is not None and str(assignment.id) == str(keep_id):
+            continue
+        assignment.status = 'CANCELLED'
+        assignment.completed_at = now
+        assignment.save()
 
 
 def _sync_workflow_status(workflow: Workflow | None) -> None:
@@ -407,31 +421,33 @@ def handle_task_completed(channel: str, message: Message):
         task.save()
 
         assignment = _get_assignment(task_id, volunteer_id)
-        if assignment:
+        keep_id = None
+        if assignment and str(assignment.status or '').upper() in ('ASSIGNED', 'STARTED', 'RESUMED', 'COMPLETED'):
             assignment.status = 'COMPLETED'
             assignment.completed_at = now
             assignment.progress = 100
             if assignment.started_at:
                 assignment.completion_time = (now - assignment.started_at).total_seconds()
             assignment.save()
-            # Annuler les doublons actifs sur la même tâche
-            TaskAssignment.objects(
-                task=task,
-                status__in=('ASSIGNED', 'STARTED', 'RESUMED'),
-            ).filter(id__ne=assignment.id).update(status='CANCELLED')
+            keep_id = assignment.id
         elif volunteer_id:
             try:
                 volunteer = Volunteer.objects.get(id=volunteer_id)
-                TaskAssignment(
+                created = TaskAssignment(
                     task=task,
                     volunteer=volunteer,
                     status='COMPLETED',
                     progress=100,
                     started_at=now,
                     completed_at=now,
-                ).save()
+                )
+                created.save()
+                keep_id = created.id
             except Volunteer.DoesNotExist:
                 pass
+
+        # Toujours libérer les créneaux actifs restants (STARTED orphelins / update mongoengine).
+        _close_active_assignments_for_task(task, keep_id=keep_id, now=now)
 
         _notify_frontend('task_status_changed', {
             'task_id': str(task_id),

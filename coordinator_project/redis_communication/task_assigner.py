@@ -80,9 +80,41 @@ def _release_surplus_assignments_for_volunteer(volunteer) -> int:
     return released
 
 
+def _cleanup_stale_active_assignments() -> int:
+    """
+    Annule les assignations actives incohérentes :
+    - volontaire manquant
+    - tâche manquante ou déjà terminale (COMPLETED/FAILED/CANCELLED)
+    Sans ça, un STARTED fantôme bloque à jamais « 1 tâche par volontaire ».
+    """
+    released = 0
+    for link in list(TaskAssignment.objects.filter(status__in=ACTIVE_ASSIGNMENT_STATUSES)):
+        task = link.task
+        vol = link.volunteer
+        reason = None
+        if not vol:
+            reason = "volontaire manquant"
+        elif not task:
+            reason = "tâche manquante"
+        elif str(task.status or "").upper() in ("COMPLETED", "FAILED", "CANCELLED"):
+            reason = f"tâche déjà {task.status}"
+        if not reason:
+            continue
+        link.status = "CANCELLED"
+        link.save()
+        released += 1
+        logger.info(
+            "Assignation stale annulée (%s): assignment=%s task=%s",
+            reason,
+            link.id,
+            getattr(task, "id", None),
+        )
+    return released
+
+
 def _enforce_one_active_assignment_per_volunteer() -> int:
     """Démêle les piles historiques (N tâches ASSIGNED au même volontaire)."""
-    released = 0
+    released = _cleanup_stale_active_assignments()
     seen = set()
     for link in TaskAssignment.objects.filter(status__in=ACTIVE_ASSIGNMENT_STATUSES):
         vol = link.volunteer
@@ -392,7 +424,28 @@ def assign_pending_tasks(limit: int = 50) -> Dict[str, Any]:
             return (0, -budget)
 
         eligible.sort(key=_sort_key)
-        volunteer_id, volunteer = eligible[0]
+
+        chosen = None
+        for volunteer_id, volunteer in eligible:
+            from redis_communication.availability_probe import probe_volunteer_availability
+
+            probe = probe_volunteer_availability(volunteer_id, horizon_min=15)
+            if not probe.get("ok") or not probe.get("launch"):
+                logger.info(
+                    "Volontaire %s écarté par prédicteur 15min (launch=%s err=%s hybrid=%s)",
+                    volunteer_id,
+                    probe.get("launch"),
+                    probe.get("error"),
+                    probe.get("hybrid"),
+                )
+                continue
+            chosen = (volunteer_id, volunteer, probe)
+            break
+
+        if not chosen:
+            continue
+
+        volunteer_id, volunteer, probe = chosen
         est = task_estimated_seconds(task)
 
         TaskAssignment.objects(
@@ -408,6 +461,16 @@ def assign_pending_tasks(limit: int = 50) -> Dict[str, Any]:
 
         task.assigned_to = volunteer
         task.status = "ASSIGNED"
+        # Trace prédiction (audit recherche)
+        meta = dict(task.metadata or {})
+        meta["availability_probe"] = {
+            "hybrid": probe.get("hybrid"),
+            "gru": probe.get("gru"),
+            "linear": probe.get("linear"),
+            "horizon_min": probe.get("horizon_min", 15),
+            "launch": True,
+        }
+        task.metadata = meta
         task.save()
 
         wf = task.workflow

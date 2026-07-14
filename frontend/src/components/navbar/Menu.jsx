@@ -8,6 +8,7 @@ import ListAltIcon from '@mui/icons-material/ListAlt';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import PeopleIcon from '@mui/icons-material/People';
+import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import { Link, useLocation } from 'react-router-dom';
 
 const links = [
@@ -16,6 +17,7 @@ const links = [
   { to: '/volunteer', label: 'Volontaires', icon: <PeopleIcon /> },
   { to: '/workflows', label: 'Workflows', icon: <AssignmentIcon /> },
   { to: '/tasks', label: 'Taches', icon: <ListAltIcon /> },
+  { to: '/predictions', label: 'Predictions 15min', icon: <QueryStatsIcon /> },
   { to: '/analytics', label: 'Analyses', icon: <BarChartIcon /> },
   { to: '/system-status', label: 'Etat systeme', icon: <MonitorHeartIcon /> },
 ];

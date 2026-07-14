@@ -5,6 +5,7 @@ from .views import (
     WorkflowStatusView, VolunteerStatusView, TaskPerformanceView,
     ResourceUtilizationView
 )
+from .availability_views import AvailabilityPredictionsView, AvailabilityProbeNowView
 
 router = DefaultRouter()
 router.register(r'managers', ManagerViewSet, basename='manager')
@@ -17,5 +18,7 @@ urlpatterns = [
     path('analytics/volunteers_by_status/', VolunteerStatusView.as_view(), name='volunteers-by-status'),
     path('analytics/task_performance/', TaskPerformanceView.as_view(), name='task-performance'),
     path('analytics/resource_utilization/', ResourceUtilizationView.as_view(), name='resource-utilization'),
+    path('availability-predictions/', AvailabilityPredictionsView.as_view(), name='availability-predictions'),
+    path('availability-predictions/probe/', AvailabilityProbeNowView.as_view(), name='availability-probe-now'),
 ]
 urlpatterns += router.urls 

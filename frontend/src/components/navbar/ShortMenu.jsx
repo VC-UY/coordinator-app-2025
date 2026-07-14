@@ -7,6 +7,7 @@ import ListAltIcon from '@mui/icons-material/ListAlt';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import PeopleIcon from '@mui/icons-material/People';
+import QueryStatsIcon from '@mui/icons-material/QueryStats';
 import { Link, useLocation } from 'react-router-dom';
 
 export default function ShortMenu() {
@@ -27,6 +28,7 @@ export default function ShortMenu() {
       {item('/volunteer', <PeopleIcon />, path === '/volunteer')}
       {item('/workflows', <AssignmentIcon />, path === '/workflows')}
       {item('/tasks', <ListAltIcon />, path === '/tasks')}
+      {item('/predictions', <QueryStatsIcon />, path === '/predictions')}
       {item('/analytics', <BarChartIcon />, path === '/analytics')}
       {item('/system-status', <MonitorHeartIcon />, path === '/system-status')}
     </List>

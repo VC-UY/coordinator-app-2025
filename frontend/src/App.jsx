@@ -7,6 +7,7 @@ import Workflows from './components/Workflows';
 import Tasks from './components/Tasks';
 import Analytics from './components/Analytics';
 import SystemStatus from './components/SystemStatus';
+import AvailabilityPredictions from './components/AvailabilityPredictions';
 import Navbar from './components/navbar/Navbar'
 import Login from './components/Login';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -20,6 +21,7 @@ function App() {
       <Route path="/workflows" element={<Workflows />} />
       <Route path="/tasks" element={<Tasks />} />
       <Route path="/analytics" element={<Analytics />} />
+      <Route path="/predictions" element={<AvailabilityPredictions />} />
       <Route path="/system-status" element={<SystemStatus />} />
     </Routes>
   );
