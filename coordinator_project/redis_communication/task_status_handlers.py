@@ -482,6 +482,9 @@ def handle_task_completed(channel: str, message: Message):
 
         logger.info(f"Tâche {task_id} terminée avec succès par le volontaire {volunteer_id}")
 
+        # Libérer le créneau → réassigner immédiatement aux autres volontaires libres
+        _trigger_coordinator_assignment()
+
     except Exception as e:
         logger.error(f"Erreur lors du traitement de la complétion de la tâche: {e}")
         logger.error(traceback.format_exc())
@@ -861,10 +864,21 @@ def handle_task_status_sync(channel: str, message: Message):
             logger.warning("task/status_sync: tâche %s introuvable", task_id)
             return
 
+        prev = str(task.status or "").upper()
+        # Ne jamais rétrograder COMPLETED/FAILED/… vers RUNNING/ASSIGNED/PENDING
+        if prev in _TERMINAL_TASK_STATUSES and coord_status not in _TERMINAL_TASK_STATUSES:
+            logger.info(
+                "task/status_sync: ignore rétrogradation %s → %s pour tâche %s",
+                prev,
+                coord_status,
+                task_id,
+            )
+            return
+
         task.status = coord_status
         if coord_status == 'COMPLETED':
             task.progress = 100.0
-        elif data.get('progress') is not None and task.status not in _TERMINAL_TASK_STATUSES:
+        elif data.get('progress') is not None and coord_status not in _TERMINAL_TASK_STATUSES:
             task.progress = max(float(task.progress or 0), float(data.get('progress') or 0))
         if data.get('name'):
             task.name = data['name']

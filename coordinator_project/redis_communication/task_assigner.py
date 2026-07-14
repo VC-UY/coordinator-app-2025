@@ -7,6 +7,7 @@ Le Manager soumet et crée les tâches ; le Coordinateur décide qui exécute qu
 from __future__ import annotations
 
 import logging
+import time
 import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -31,6 +32,64 @@ from volunteer.models import Volunteer
 logger = logging.getLogger(__name__)
 
 PENDING_STATUSES = ("PENDING", "CREATED")
+_LAST_ASSIGNED_KEY = "coord:assign:last_ts"
+_ASSIGN_LOCK_KEY = "coord:assign:lock"
+_ASSIGN_LOCK_TTL = 25
+
+
+def _redis_raw():
+    try:
+        return RedisClient.get_instance().redis
+    except Exception:
+        return None
+
+
+def _last_assigned_score(vid: str) -> float:
+    """Horodatage de dernière assignation (plus petit = prioritaire)."""
+    client = _redis_raw()
+    if not client:
+        return 0.0
+    try:
+        raw = client.hget(_LAST_ASSIGNED_KEY, str(vid))
+        if raw is None:
+            return 0.0
+        if isinstance(raw, bytes):
+            raw = raw.decode()
+        return float(raw)
+    except Exception:
+        return 0.0
+
+
+def _mark_assigned(vid: str) -> None:
+    client = _redis_raw()
+    if not client:
+        return
+    try:
+        client.hset(_LAST_ASSIGNED_KEY, str(vid), str(time.time()))
+    except Exception:
+        pass
+
+
+def _try_assignment_lock() -> bool:
+    """Évite les cycles concurrents (N partitions → N threads)."""
+    client = _redis_raw()
+    if not client:
+        return True
+    try:
+        # SET NX EX
+        return bool(client.set(_ASSIGN_LOCK_KEY, "1", nx=True, ex=_ASSIGN_LOCK_TTL))
+    except Exception:
+        return True
+
+
+def _release_assignment_lock() -> None:
+    client = _redis_raw()
+    if not client:
+        return
+    try:
+        client.delete(_ASSIGN_LOCK_KEY)
+    except Exception:
+        pass
 
 
 def _release_surplus_assignments_for_volunteer(volunteer) -> int:
@@ -379,8 +438,18 @@ def _build_assignment_payload(task: Task, volunteer_id: str) -> Dict[str, Any]:
 def assign_pending_tasks(limit: int = 50) -> Dict[str, Any]:
     """
     Point d'entrée : assigne depuis la file globale selon capacité volontaires.
-    Une seule tâche active par volontaire (fair-share entre machines).
+    Une seule tâche active par volontaire, répartition round-robin / moins chargé.
     """
+    if not _try_assignment_lock():
+        return {"assigned": 0, "message": "Cycle d'assignation déjà en cours"}
+
+    try:
+        return _assign_pending_tasks_locked(limit=limit)
+    finally:
+        _release_assignment_lock()
+
+
+def _assign_pending_tasks_locked(*, limit: int = 200) -> Dict[str, Any]:
     released = _enforce_one_active_assignment_per_volunteer()
     if released:
         logger.info("Pré-nettoyage: %s assignation(s) surplus libérée(s)", released)
@@ -448,10 +517,12 @@ def assign_pending_tasks(limit: int = 50) -> Dict[str, Any]:
 
         def _sort_key(item: Tuple[str, Volunteer]):
             vid, _ = item
+            # Priorité: qui n'a pas eu de travail récemment (round-robin LRU)
+            last_ts = _last_assigned_score(vid)
             budget = remaining[vid]
-            if budget is None:
-                return (1, 0.0)
-            return (0, -budget)
+            # budget None (illimité) = OK; budget fini = encore disponible
+            budget_rank = 0 if budget is None else (0 if float(budget) > 0 else 1)
+            return (budget_rank, last_ts, vid)
 
         eligible.sort(key=_sort_key)
 
@@ -536,8 +607,14 @@ def assign_pending_tasks(limit: int = 50) -> Dict[str, Any]:
             remaining[volunteer_id] = max(0.0, float(remaining[volunteer_id]) - est)
 
         _notify_manager_assigned(task, volunteer_id)
+        _mark_assigned(volunteer_id)
         assigned_count += 1
         assigned_this_cycle.add(volunteer_id)
+        logger.info(
+            "Fair-share: tâche %s → volontaire %s (last_ts rotated)",
+            getattr(task, "name", task.id),
+            volunteer_id[:8],
+        )
 
     published = 0
     for volunteer_id, task_list in by_volunteer.items():
