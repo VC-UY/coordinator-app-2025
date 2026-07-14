@@ -12,6 +12,7 @@ from volunteer.models import Volunteer
 from redis_communication.message import Message
 from redis_communication.volunteer_performance_handlers import update_volunteer_score
 from manager.models import Task, TaskAssignment, Workflow
+from redis_communication.volunteer_matching import ACTIVE_ASSIGNMENT_STATUSES
 
 logger = logging.getLogger(__name__)
 
@@ -888,7 +889,10 @@ def handle_task_status_sync(channel: str, message: Message):
 
         if clear_assignment or coord_status in ('PENDING', 'CREATED'):
             task.assigned_to = None
-            TaskAssignment.objects(task=task, status='ASSIGNED').update(status='CANCELLED')
+            TaskAssignment.objects(
+                task=task,
+                status__in=list(ACTIVE_ASSIGNMENT_STATUSES),
+            ).update(status='CANCELLED')
         elif volunteer_id and coord_status in ('ASSIGNED', 'RUNNING'):
             volunteer = Volunteer.objects(id=volunteer_id).first()
             if volunteer:

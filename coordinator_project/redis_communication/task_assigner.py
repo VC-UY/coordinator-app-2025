@@ -139,6 +139,51 @@ def _release_surplus_assignments_for_volunteer(volunteer) -> int:
     return released
 
 
+_STALE_ASSIGNMENT_SEC = int(getattr(settings, "COORD_STALE_ASSIGNMENT_SEC", 120))
+
+
+def _assignment_age_seconds(link) -> float:
+    ref = getattr(link, "started_at", None) or getattr(link, "assigned_at", None)
+    if not ref:
+        return 0.0
+    try:
+        if ref.tzinfo is None:
+            ref = ref.replace(tzinfo=timezone.utc)
+        return max(0.0, (datetime.now(timezone.utc) - ref).total_seconds())
+    except Exception:
+        return 0.0
+
+
+def _release_stale_assignment(link, task, vol, reason: str) -> bool:
+    """Annule une assignation fantôme et remet la tâche en file si possible."""
+    link.status = "CANCELLED"
+    link.save()
+    if task and str(getattr(task, "status", "") or "").upper() not in (
+        "COMPLETED",
+        "FAILED",
+        "CANCELLED",
+        "TIMEOUT",
+    ):
+        task.status = "PENDING"
+        task.assigned_to = None
+        task.progress = 0
+        task.save()
+    if vol and getattr(vol, "current_status", None) == "busy":
+        try:
+            from volunteer.presence import mark_online
+
+            mark_online(str(vol.id), status="available")
+        except Exception:
+            pass
+    logger.info(
+        "Assignation stale libérée (%s): vol=%s task=%s",
+        reason,
+        getattr(vol, "id", None),
+        getattr(task, "id", None),
+    )
+    return True
+
+
 def _cleanup_stale_active_assignments() -> int:
     """
     Annule les assignations actives incohérentes :
@@ -188,16 +233,25 @@ def _cleanup_stale_active_assignments() -> int:
             )
             continue
         if not reason:
-            continue
-        link.status = "CANCELLED"
-        link.save()
-        released += 1
-        logger.info(
-            "Assignation stale annulée (%s): assignment=%s task=%s",
-            reason,
-            link.id,
-            getattr(task, "id", None),
-        )
+            # Volontaire annonce available mais assignation STARTED/ASSIGNED bloquante
+            if vol and getattr(vol, "current_status", None) == "available":
+                prog = float(getattr(task, "progress", 0) or 0)
+                tst = str(getattr(task, "status", "") or "").upper()
+                if prog < 1.0 and tst in ("ASSIGNED", "RUNNING", "PENDING", "CREATED"):
+                    reason = "volontaire available + tâche non démarrée"
+            # Tâche repassée PENDING/CREATED mais assignation encore active
+            if not reason and task:
+                tst = str(getattr(task, "status", "") or "").upper()
+                if tst in ("PENDING", "CREATED") and str(link.status or "").upper() in ACTIVE_ASSIGNMENT_STATUSES:
+                    reason = f"tâche {tst} avec assignation active"
+            # Assignation bloquée sans progrès depuis longtemps
+            if not reason:
+                prog = float(getattr(task, "progress", 0) or 0)
+                age = _assignment_age_seconds(link)
+                if prog < 5.0 and age >= _STALE_ASSIGNMENT_SEC:
+                    reason = f"sans progrès depuis {int(age)}s"
+        if reason:
+            released += int(_release_stale_assignment(link, task, vol, reason))
     return released
 
 
