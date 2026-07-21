@@ -170,7 +170,11 @@ def task_assignment_handler(channel: str, message: Message):
                             metadata = {'file_server': task_data.get('file_server')},
                             estimated_execution_time=task_data.get('estimated_execution_time', 0),
                             input_data=task_data.get('input_data', {}),
-                            docker_information= dict(task_data.get('docker_information', {})),
+                            runtime_info=dict(
+                                task_data.get('runtime_info')
+                                or task_data.get('docker_information')
+                                or {}
+                            ),
                             input_data_size=task_data.get('input_data_size', 0),
                             parameters=task_data.get('parameters', []),
                         )
@@ -202,8 +206,12 @@ def task_assignment_handler(channel: str, message: Message):
                         task.estimated_execution_time = task_data['estimated_execution_time']
                     if task_data.get('input_data'):
                         task.input_data = task_data['input_data']
-                    if task_data.get('docker_information'):
-                        task.docker_information = dict(task_data['docker_information'])
+                    if task_data.get('runtime_info') or task_data.get('docker_information'):
+                        task.runtime_info = dict(
+                            task_data.get('runtime_info')
+                            or task_data.get('docker_information')
+                            or {}
+                        )
                     task.save()
 
                     # Mettre à jour le volontaire

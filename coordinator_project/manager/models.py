@@ -123,7 +123,7 @@ class Task(Document):
     output_data = DictField(default=dict)  # Données de sortie de la tâche
     tags = ListField(StringField(), default=list)
     metadata = DictField(default=dict)  # Métadonnées supplémentaires
-    docker_information = DictField(default=dict)  # Informations Docker pour l'exécution
+    runtime_info = DictField(default=dict)  # Runtime vc-uyr / bundle
     input_data_size = FloatField(default=0)  # Taille des données d'entrée en Mo
     parameters = ListField(DictField(), default=list)  # Paramètres supplémentaires pour la tâche
 

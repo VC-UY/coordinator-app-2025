@@ -417,7 +417,7 @@ def _notify_manager_assigned(task: Task, volunteer_id: str) -> None:
         "message": "Assignée par le coordinateur",
         "input_data": task.input_data or {},
         "estimated_execution_time": task.estimated_execution_time,
-        "docker_information": task.docker_information or {},
+        "runtime_info": task.runtime_info or {},
         "workflow_type": getattr(wf, "workflow_type", "") if wf else "",
         "manager_id": str(getattr(wf, "owner", None).id) if wf and getattr(wf, "owner", None) else None,
     }
@@ -485,7 +485,7 @@ def _build_assignment_payload(task: Task, volunteer_id: str) -> Dict[str, Any]:
         "estimated_execution_time": task_estimated_seconds(task),
         "input_data": input_data,
         "input_data_size": task.input_data_size or meta.get("input_data_size") or 0,
-        "docker_information": task.docker_information or meta.get("docker_information") or {},
+        "runtime_info": task.runtime_info or meta.get("runtime_info") or {},
     }
 
 

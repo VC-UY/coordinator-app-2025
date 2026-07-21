@@ -16,6 +16,16 @@ from redis_communication.volunteer_matching import ACTIVE_ASSIGNMENT_STATUSES
 
 logger = logging.getLogger(__name__)
 
+
+def extract_runtime_info(data: Dict[str, Any] | None) -> dict:
+    """Lit runtime_info (nouveau) ou docker_information (legacy wire)."""
+    data = data or {}
+    raw = data.get("runtime_info")
+    if raw is None:
+        raw = data.get("docker_information")
+    return dict(raw or {})
+
+
 _TERMINAL_TASK_STATUSES = frozenset({'COMPLETED', 'FAILED', 'CANCELLED', 'TIMEOUT'})
 _TERMINAL_ASSIGNMENT_STATUSES = frozenset({'COMPLETED', 'FAILED', 'TIMEOUT', 'CANCELLED'})
 
@@ -63,8 +73,9 @@ def _apply_task_payload(task, data: Dict[str, Any]) -> None:
         task.input_data = data.get('input_data') or {}
     if data.get('input_data_size') is not None:
         task.input_data_size = float(data.get('input_data_size') or 0)
-    if data.get('docker_information'):
-        task.docker_information = dict(data.get('docker_information') or {})
+    ri = extract_runtime_info(data)
+    if ri:
+        task.runtime_info = ri
     meta = dict(task.metadata or {})
     if data.get('input_files') is not None:
         meta['input_files'] = data.get('input_files') or []
@@ -153,7 +164,7 @@ def handle_task_created(channel: str, message: Message):
             estimated_execution_time=float(data.get('estimated_execution_time') or 0),
             input_data=data.get('input_data') or {},
             input_data_size=float(data.get('input_data_size') or 0),
-            docker_information=dict(data.get('docker_information') or {}),
+            runtime_info=extract_runtime_info(data),
             metadata={
                 'input_files': data.get('input_files') or [],
                 'output_files': data.get('output_files') or [],
