@@ -31,6 +31,7 @@ WORKFLOW_TYPE_CHOICES = (
     ('ML_INFERENCE', 'Inférence de modèle machine learning'),
     ('OPEN_MALARIA', 'Simulation de la propagation du paludisme'),
     ('CUSTOM', 'Workflow personnalisé'),
+    ('DISTRIBUTED_LEARNING', 'Apprentissage distribué gossip (AD-PSGD)'),
 )
 
 WORKFLOW_STATUS_CHOICES = (
