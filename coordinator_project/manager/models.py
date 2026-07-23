@@ -134,6 +134,8 @@ class Task(Document):
         'ordering': ['-is_subtask', 'created_at'],
         'verbose_name': 'Tâche',
         'verbose_name_plural': 'Tâches',
+        # Tolère d'anciens champs Mongo (ex. docker_information) sans planter l'assignation.
+        'strict': False,
     }
 
 class TaskAssignment(Document):
