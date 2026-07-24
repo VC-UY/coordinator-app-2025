@@ -171,13 +171,29 @@ def volunteer_can_run_task(
     req = task.required_resources or {}
     req_cpu = float(req.get("cpu") or req.get("cpu_cores") or 1)
     req_ram = float(req.get("ram") or req.get("memory_mb") or 512)
-    req_disk = float(req.get("disk") or req.get("disk_gb") or 1)
+    req_disk = float(req.get("disk") or req.get("disk_gb") or req.get("disk_space_gb") or 1)
+
+    # Normalise les faux besoins disque : souvent = free disk machine au split
+    # (100–500 Go) au lieu d'un besoin tâche. Plafond soft + fallback input_size.
+    free_disk = float(getattr(volunteer, "available_storage", 0) or 0)
+    if req_disk > 20:
+        input_gb = float(getattr(task, "input_data_size", 0) or 0)
+        if input_gb > 512:
+            # input_data_size parfois en Mo
+            input_gb = input_gb / 1024.0
+        # Si ça ressemble à l'espace libre machine, ce n'est pas un vrai besoin
+        if free_disk > 0 and abs(req_disk - free_disk) < 5:
+            req_disk = max(1.0, min(2.0, input_gb + 0.5))
+        else:
+            req_disk = max(1.0, min(20.0, input_gb + 1.0 if input_gb > 0 else 2.0))
 
     max_cpu = float(prefs.get("max_cpu_cores") or volunteer.cpu_cores or 1)
     max_ram_mb = float(prefs.get("max_ram_gb") or 0) * 1024.0
     if max_ram_mb <= 0:
         max_ram_mb = float(volunteer.total_ram or 1024)
-    max_disk = float(prefs.get("max_disk_gb") or volunteer.available_storage or 1)
+    max_disk = float(prefs.get("max_disk_gb") or 0)
+    if max_disk <= 0:
+        max_disk = free_disk or 1.0
 
     if req_cpu > max_cpu + 0.05:
         return False

@@ -434,9 +434,23 @@ def _notify_manager_assigned(task: Task, volunteer_id: str) -> None:
 
 
 def _pending_tasks_global() -> List[Task]:
-    """Tâches en file, triées par priorité workflow puis FIFO."""
+    """Tâches en file, triées par priorité workflow puis FIFO.
+
+    Inclut aussi REASSIGNING / PARTIAL_FAILURE / FAILED : le Manager peut
+    laisser des tâches PENDING sous un workflow marqué FAILED (retry /
+    recovery). Sinon la file CD reste vide alors que des PENDING existent.
+    """
     workflows = Workflow.objects.filter(
-        status__in=["PENDING", "RUNNING", "ASSIGNING", "CREATED", "SUBMITTED"]
+        status__in=[
+            "PENDING",
+            "RUNNING",
+            "ASSIGNING",
+            "CREATED",
+            "SUBMITTED",
+            "REASSIGNING",
+            "PARTIAL_FAILURE",
+            "FAILED",
+        ]
     ).order_by("-priority", "submitted_at", "created_at")
 
     tasks: List[Task] = []
@@ -650,7 +664,14 @@ def _assign_pending_tasks_locked(*, limit: int = 200) -> Dict[str, Any]:
         task.save()
 
         wf = task.workflow
-        if wf and wf.status in ("CREATED", "PENDING", None, ""):
+        if wf and str(wf.status or "").upper() in (
+            "CREATED",
+            "PENDING",
+            "FAILED",
+            "REASSIGNING",
+            "PARTIAL_FAILURE",
+            "",
+        ):
             wf.status = "RUNNING"
             wf.save()
 
